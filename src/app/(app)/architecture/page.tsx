@@ -298,6 +298,7 @@ export default function ArchitecturePage() {
                   {[
                     ["Dashboard KPIs, risk strip, buyer list", "Server", "No interaction; cached data and HTML."],
                     ["Orders toolbar + table", "Client", "Sorting, filtering, selection and virtualization."],
+                    ["Server orders route", "Client island", "Manual TanStack Table over a paged Postgres query."],
                     ["Charts", "Client, lazy", "Recharts needs DOM APIs; loaded after the shell."],
                     ["PO form", "Client island", "RHF state, localStorage draft and permission-checked API submit."],
                     ["Notes editor", "Client, on demand", "Tiptap is heavy and only needed when opened."],
@@ -445,7 +446,7 @@ const virtualizer = useVirtualizer({
               <BulletList
                 title="What this would need next"
                 items={[
-                  "Server-side pagination and indexed search beyond roughly 50k rows.",
+                  "Move CSV export off the request path and load-test beyond 1M rows.",
                   "Server-side sort/filter for multi-tenant data and permissions.",
                   "Concurrency control and object-storage-backed attachments around the existing governed workflow.",
                   "Keyboard grid navigation and a proper column-resize model.",
@@ -730,7 +731,7 @@ const virtualizer = useVirtualizer({
                     [
                       "Fetch-all then client filter",
                       "Instant filters and a small API surface.",
-                      "Not appropriate for very large or permissioned datasets.",
+                      "Server mode exists for larger datasets; this route stays the instant demo.",
                     ],
                     [
                       "Browser-local fallback",
@@ -765,7 +766,7 @@ const virtualizer = useVirtualizer({
                   "Auth and environment branches around the Drizzle repository already in place.",
                   "Auth and role boundaries for merchandiser, factory and buyer views.",
                   "Concurrency control and object-storage-backed attachments for the governed workflow.",
-                  "Server-side pagination, indexed search and permission-scoped queries.",
+                  "Background export jobs and a 1M-row load test for the server query.",
                   "Add visual regression and real-user INP collection beside the existing Playwright suite.",
                 ]}
               />

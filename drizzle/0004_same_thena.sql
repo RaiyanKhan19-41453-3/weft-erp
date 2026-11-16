@@ -1,0 +1,3 @@
+CREATE INDEX "purchase_orders_org_status_idx" ON "purchase_orders" USING btree ("organization_id","status");--> statement-breakpoint
+CREATE INDEX "purchase_orders_org_factory_idx" ON "purchase_orders" USING btree ("organization_id","factory");--> statement-breakpoint
+CREATE INDEX "purchase_orders_search_idx" ON "purchase_orders" USING gin (to_tsvector('english', coalesce("id", '') || ' ' || coalesce("buyer", '') || ' ' || coalesce("style", '')));

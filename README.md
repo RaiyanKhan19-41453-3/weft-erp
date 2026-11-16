@@ -44,6 +44,7 @@ The entire workspace runs on Vercel's free tier with no paid services. It is con
 | --- | --- |
 | `/` | Server-rendered KPI grid, 12-week throughput chart, shipment-risk queue, buyer concentration and a five-SKU low-stock callout. |
 | `/orders` | 5,000 POs in a TanStack Table + Virtual grid. Sort, global search, stage/buyer/risk filters, column visibility, row selection, density preference, URL-addressable filters and CSV export. |
+| `/orders/server` | Server-driven TanStack Table in manual mode: Postgres paging, sorting, stage/factory filters and full-text search with only 50 rows fetched at a time. |
 | `/orders/new` | Three-step React Hook Form wizard with a shared Zod schema, per-step validation, API submission and a recoverable Zustand draft. |
 | `/orders/[id]` | Order summary, size allocation, line items, production timeline, governed status transitions with approvals and audit diff, lazy Tiptap notes and shipment/buyer rail. |
 | `/orders/[id]/invoice` | Two-page A4 commercial invoice and packing list with totals, amount in words, carton allocation and a generated Code 39 barcode. |
@@ -111,6 +112,10 @@ The dashboard refreshes hourly; the order book and detail records are cached dai
 **State ownership.** SWR owns the read path, Axios owns the validated POST mutation, and Zustand owns drafts, browser-created POs, edited notes and table density with `skipHydration` and explicit rehydration flags to avoid SSR mismatches. Filters live in the URL so a copied queue link restores the view.
 
 **Persistence modes.** With no `DATABASE_URL`, the API validates submissions and returns the created record, but writes it to `localStorage` with `persisted: false`. When Neon is configured, signed-in users write into their organization; the API returns `persisted: true` and revalidates tenant cache tags. Public visitors get a read-only demo scoped to the seeded demo organization. Drafts, table density and theme stay in `localStorage` either way. Setup is documented in [`docs/DB_SETUP.md`](docs/DB_SETUP.md).
+
+## Server-driven mode
+
+`/orders/server` queries Postgres directly through `/api/orders/query`. Paging, sorting, stage/factory filters and full-text search happen in SQL; the client receives one page of 50 rows at a time and still renders it with TanStack Virtual. Indexes cover tenant, status, factory, buyer, due date and a GIN full-text expression over PO number, buyer and style. CI enforces per-route gzip bundle budgets.
 
 ## Auth and roles
 
@@ -195,7 +200,7 @@ Verified on 16 Nov 2026:
 - Production QA — creating a local PO, draft autosave/restore, local detail after reload, local invoice print, no console errors
 - Print QA — sample invoice is exactly two A4 pages
 - Lighthouse desktop — accessibility, best practices and SEO 100 on all eight routes; performance 95–100 after tenant-aware server reads, with no failed accessibility audits
-- Playwright — 8 end-to-end tests covering dashboard, command palette, Web Vitals panel, the 5,000-row explorer, PO draft/create/print, materials→PO prefill, auth, tenant isolation and workflow transitions
+- Playwright — 9 end-to-end tests covering dashboard, command palette, Web Vitals panel, the 5,000-row explorer, PO draft/create/print, materials→PO prefill, auth, tenant isolation, workflow transitions and the server query
 - Browser Web Vitals — `web-vitals` reports LCP, INP, CLS, FCP and TTFB into a case-study panel using locally stored values only
 
 The Vitest suite covers the deterministic order book, dashboard/analytics consistency, size allocation, materials thresholds, new-order validation, CSV safety, DB mappers and amount-in-words formatting. Playwright covers the critical UI flows on every CI run. Visual regression and field INP collection are still out of scope.
@@ -286,6 +291,7 @@ src/
     (auth)/                 sign-in and sign-up pages
     api/auth/[...all]/      Better Auth handler
     api/orders/route.ts     cached GET + validated POST
+    api/orders/query/route.ts paged, sorted, FTS Postgres query
     api/orders/[id]/status/ governed transitions + audit diff
     api/orders/[id]/approvals/ approval decisions by owners/admins
     api/barcode/route.ts    server-generated Code 39 SVG

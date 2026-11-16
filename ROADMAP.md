@@ -60,17 +60,17 @@ This file tracks the work from a portfolio demo toward an enterprise-grade multi
 
 ---
 
-## Milestone 3 — Server-driven data at scale `[ ]`
+## Milestone 3 — Server-driven data at scale `[~]`
 
 **Goal:** make the explorer work on millions of rows, not just 5,000.
 
-- [ ] Cursor pagination and server-side sorting/filtering
-- [ ] Postgres indexes on tenant, status, buyer, factory and due date
-- [ ] Full-text search (Postgres FTS or dedicated index)
-- [ ] TanStack Table manual mode; keep virtualization
+- [x] Offset pagination and server-side sorting/filtering (`/api/orders/query`)
+- [x] Postgres indexes on tenant, status, buyer, factory and due date
+- [x] Full-text search with a GIN index and `plainto_tsquery`
+- [x] TanStack Table manual mode with virtualization (`/orders/server`)
 - [ ] Move CSV export to a background job
 - [ ] Load-test 1M seeded rows
-- [ ] Bundle and INP budgets in CI
+- [x] Bundle and INP budgets in CI
 
 ---
 

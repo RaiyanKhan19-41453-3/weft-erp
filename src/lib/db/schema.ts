@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -39,9 +40,15 @@ export const purchaseOrders = pgTable(
   },
   (table) => [
     index("purchase_orders_org_idx").on(table.organizationId),
+    index("purchase_orders_org_status_idx").on(table.organizationId, table.status),
+    index("purchase_orders_org_factory_idx").on(table.organizationId, table.factory),
     index("purchase_orders_status_idx").on(table.status),
     index("purchase_orders_buyer_idx").on(table.buyer),
     index("purchase_orders_due_date_idx").on(table.dueDate),
+    index("purchase_orders_search_idx").using(
+      "gin",
+      sql`to_tsvector('english', coalesce(${table.id}, '') || ' ' || coalesce(${table.buyer}, '') || ' ' || coalesce(${table.style}, ''))`,
+    ),
     index("purchase_orders_factory_idx").on(table.factory),
   ],
 );

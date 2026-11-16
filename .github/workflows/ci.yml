@@ -41,6 +41,9 @@ jobs:
       - name: Production build
         run: npm run build
 
+      - name: Bundle budgets
+        run: npm run check:bundles
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
