@@ -4,7 +4,7 @@ test("draft autosaves and a PO can be created and printed", async ({ page }) => 
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
 
-  if (process.env.E2E_AUTH === "1") {
+  if (process.env.E2E_AUTH === "1" || process.env.E2E_SERVER_QUERY === "1") {
     await page.goto("/sign-in");
     await page.locator("#email").fill("demo@weft.local");
     await page.locator("#password").fill("demo1234");

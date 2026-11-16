@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+test.skip(!process.env.E2E_SERVER_QUERY, "requires a seeded DATABASE_URL");
+
 test("server query pages, filters and sorts in Postgres", async ({ page, request }) => {
   const base = "http://127.0.0.1:3100";
 
