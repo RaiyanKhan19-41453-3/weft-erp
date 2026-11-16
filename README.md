@@ -239,29 +239,27 @@ npm run db:seed
 
 Add the same `DATABASE_URL` to Vercel's environment variables and redeploy. Reads stay behind `"use cache"` + `cacheTag`, and writes call `revalidateTag`.
 
-## Deploying
+## Deploying and CI/CD
 
-The app needs no paid services. A database is optional; add a free Neon URL to enable persistence (see [Database setup](docs/DB_SETUP.md)). No secrets are committed.
+**CI** runs on every push and pull request through [`.github/workflows/ci.yml`](.github/workflows/ci.yml): `npm ci`, TypeScript, ESLint, Vitest and a production build. No secrets are needed — without `DATABASE_URL`, the build uses the deterministic generator fallback.
 
-```bash
-npx vercel@latest login
-npx vercel@latest link
-npx vercel@latest --prod
-```
+**Hosting** is Vercel's free Hobby tier. The source is already at `RaiyanKhan19-41453-3/weft-erp`.
 
-When the CLI asks for a project name, enter **`weft-erp`** explicitly rather than accepting the folder-derived default. If that subdomain is taken, choose another Weft name. After the first deploy, replace the **Live demo** placeholder at the top of this README with the production URL. Optionally set `NEXT_PUBLIC_SITE_URL` to the final domain so Open Graph metadata uses it.
+1. Import the repository at [vercel.com/new](https://vercel.com/new), or run:
 
-To publish the source first:
+   ```bash
+   npx vercel@latest login
+   npx vercel@latest link
+   npx vercel@latest --prod
+   ```
 
-```bash
-git init
-git add .
-git commit -m "Build Weft apparel operations console"
-git remote add origin git@github.com:<username>/weft-erp.git
-git push -u origin main
-```
+   When asked for a project name, enter **`weft-erp`** explicitly rather than accepting the folder-derived default.
 
-Then import the repository at [vercel.com/new](https://vercel.com/new).
+2. Add the Neon variables to **Vercel → Project → Settings → Environment Variables**. `DATABASE_URL` enables database persistence; the other variables pulled by `neon init` (`DATABASE_URL_UNPOOLED`, `NEON_BRANCH`, `NEON_BRANCH_ID`, `NEON_FUNCTION_HOST_SUFFIX`) can also be added for completeness. Never commit them.
+
+3. Enable Vercel's Git integration. Pushes to `main` deploy to production; pull requests get preview deployments. GitHub Actions CI checks run on the same events.
+
+4. After the first deploy, replace the **Live demo** placeholder at the top of this README with the production URL. Optionally set `NEXT_PUBLIC_SITE_URL` to the final domain so Open Graph metadata uses it.
 
 ## Project structure
 
