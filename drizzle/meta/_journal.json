@@ -15,6 +15,13 @@
       "when": 1794832235855,
       "tag": "0001_wealthy_iron_patriot",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794840102976,
+      "tag": "0002_demonic_jane_foster",
+      "breakpoints": true
     }
   ]
 }

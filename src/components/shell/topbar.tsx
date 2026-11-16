@@ -10,6 +10,8 @@ import {
   ClipboardCheck,
   CornerDownRight,
   Layers,
+  LogIn,
+  LogOut,
   Plus,
   RotateCcw,
   Search,
@@ -32,6 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { authClient } from "@/lib/auth-client";
 import { resetLocalDemoData } from "@/lib/stores/reset";
 
 const routeLabels: Record<string, string> = {
@@ -62,6 +65,7 @@ export function Topbar() {
   const { setOpen } = useCommandMenu();
   const crumbs = useBreadcrumbs();
   const router = useRouter();
+  const { data: session } = authClient.useSession();
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
 
   const resetDemo = () => {
@@ -191,16 +195,25 @@ export function Topbar() {
               type="button"
               className="flex h-8 items-center gap-1.5 rounded-control px-1 text-left outline-none transition-colors hover:bg-sunken focus-visible:ring-2 focus-visible:ring-brand/40"
             >
-              <Avatar name="Demo Operator" className="size-7 bg-brand-soft text-[9px] text-brand-ink dark:bg-brand/15 dark:text-brand" />
-              <span className="hidden text-[12px] font-medium md:block">Demo operator</span>
+              <Avatar
+                name={session?.user?.name ?? "Demo Operator"}
+                className="size-7 bg-brand-soft text-[9px] text-brand-ink dark:bg-brand/15 dark:text-brand"
+              />
+              <span className="hidden text-[12px] font-medium md:block">
+                {session?.user?.name ?? "Demo operator"}
+              </span>
               <ChevronDown className="hidden size-3.5 text-muted md:block" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>Workspace</DropdownMenuLabel>
             <div className="px-2 pb-2">
-              <p className="text-[12px] font-medium">Weft demo</p>
-              <p className="text-[10.5px] text-muted">No sign-in · synthetic data</p>
+              <p className="text-[12px] font-medium">
+                {session?.user?.name ?? "Public demo"}
+              </p>
+              <p className="text-[10.5px] text-muted">
+                {session?.user?.email ?? "Read-only · sign in to collaborate"}
+              </p>
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
@@ -216,6 +229,23 @@ export function Topbar() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            {session ? (
+              <DropdownMenuItem
+                onSelect={() => {
+                  void authClient.signOut().then(() => router.push("/"));
+                }}
+              >
+                <LogOut />
+                Sign out
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem asChild>
+                <Link href="/sign-in">
+                  <LogIn />
+                  Sign in to collaborate
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onSelect={resetDemo} className="text-danger focus:bg-danger/10">
               <RotateCcw />
               Reset local demo data

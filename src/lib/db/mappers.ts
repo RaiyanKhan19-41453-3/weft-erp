@@ -1,4 +1,4 @@
-import type { Order } from "@/lib/constants";
+import { DEMO_ORG_ID, type Order } from "@/lib/constants";
 import type { purchaseOrders } from "./schema";
 
 type PurchaseOrderRow = typeof purchaseOrders.$inferSelect;
@@ -7,6 +7,7 @@ export type PurchaseOrderInsert = typeof purchaseOrders.$inferInsert;
 export function rowToOrder(row: PurchaseOrderRow): Order {
   return {
     id: row.id,
+    organizationId: row.organizationId,
     buyer: row.buyer,
     buyerCode: row.buyerCode,
     buyerCountry: row.buyerCountry,
@@ -34,6 +35,7 @@ export function rowToOrder(row: PurchaseOrderRow): Order {
 export function orderToRow(order: Order): PurchaseOrderInsert {
   return {
     id: order.id,
+    organizationId: order.organizationId ?? DEMO_ORG_ID,
     buyer: order.buyer,
     buyerCode: order.buyerCode,
     buyerCountry: order.buyerCountry,

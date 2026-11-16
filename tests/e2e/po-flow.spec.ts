@@ -4,6 +4,14 @@ test("draft autosaves and a PO can be created and printed", async ({ page }) => 
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
 
+  if (process.env.E2E_AUTH === "1") {
+    await page.goto("/sign-in");
+    await page.locator("#email").fill("demo@weft.local");
+    await page.locator("#password").fill("demo1234");
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await page.waitForURL(/\/$/, { timeout: 15000 });
+  }
+
   await page.goto("/orders/new");
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByText("Style line 1")).toBeVisible();

@@ -44,14 +44,14 @@ const SECTIONS = [
 ] as const;
 
 const BUNDLE_ROWS = [
-  { route: "/", label: "Operations overview", total: "252.4", delta: "2.3" },
-  { route: "/analytics", label: "Analytics", total: "252.9", delta: "2.8" },
-  { route: "/architecture", label: "Architecture case study", total: "254.3", delta: "4.2" },
-  { route: "/materials", label: "Materials", total: "256.9", delta: "6.8" },
-  { route: "/orders/[id]/invoice", label: "Invoice", total: "260.1", delta: "10.0" },
-  { route: "/orders/[id]", label: "Order detail", total: "276.1", delta: "26.0" },
-  { route: "/orders", label: "Purchase orders", total: "297.7", delta: "47.6" },
-  { route: "/orders/new", label: "New purchase order", total: "332.1", delta: "82.0" },
+  { route: "/", label: "Operations overview", total: "268.0", delta: "2.3" },
+  { route: "/analytics", label: "Analytics", total: "268.5", delta: "2.8" },
+  { route: "/architecture", label: "Architecture case study", total: "269.9", delta: "4.2" },
+  { route: "/materials", label: "Materials", total: "272.5", delta: "6.8" },
+  { route: "/orders/[id]/invoice", label: "Invoice", total: "275.7", delta: "10.0" },
+  { route: "/orders/[id]", label: "Order detail", total: "291.6", delta: "26.0" },
+  { route: "/orders", label: "Purchase orders", total: "313.2", delta: "47.6" },
+  { route: "/orders/new", label: "New purchase order", total: "347.6", delta: "82.0" },
 ] as const;
 
 const BOUNDARIES = [
@@ -162,7 +162,7 @@ export default function ArchitecturePage() {
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Stat value="5,000" label="synthetic POs" />
             <Stat value="~40" label="rows mounted at once" />
-            <Stat value="250 KB" label="shared JS, gzip" />
+            <Stat value="266 KB" label="shared JS, gzip" />
             <Stat value="2 pages" label="A4 print output" />
           </div>
 
@@ -299,7 +299,7 @@ export default function ArchitecturePage() {
                     ["Dashboard KPIs, risk strip, buyer list", "Server", "No interaction; cached data and HTML."],
                     ["Orders toolbar + table", "Client", "Sorting, filtering, selection and virtualization."],
                     ["Charts", "Client, lazy", "Recharts needs DOM APIs; loaded after the shell."],
-                    ["PO form", "Client island", "RHF state, localStorage draft and API submit."],
+                    ["PO form", "Client island", "RHF state, localStorage draft and permission-checked API submit."],
                     ["Notes editor", "Client, on demand", "Tiptap is heavy and only needed when opened."],
                     ["Invoice", "Server + tiny client button", "Print document is static once data is fetched."],
                     ["Command palette", "Client", "Keyboard state and Radix dialog."],
@@ -374,7 +374,7 @@ export async function getOrderDetail(id: string) {
                   <li>No hydration drift between server HTML and client table rows.</li>
                   <li>Screenshots and reviewer feedback stay comparable over time.</li>
                   <li>The dataset is reproducible without shipping a 2 MB JSON fixture.</li>
-                  <li>The same read interface now serves Postgres rows when configured.</li>
+                  <li>The same read interface serves Postgres rows scoped by active organization.</li>
                 </ul>
               </div>
             </div>
@@ -384,8 +384,8 @@ export async function getOrderDetail(id: string) {
               <Code>persisted: true</Code>. Without <Code>DATABASE_URL</Code>, the same validated
               payload falls back to <Code>localStorage</Code> and returns{" "}
               <Code>persisted: false</Code>. Status changes are real optimistic DB writes with an
-              audit trail; auth, concurrency control and role-based permissions are still out of
-              scope.
+              audit trail, and auth with organization roles now scopes every read and write.
+              Concurrency control and enterprise SSO are still out of scope.
             </Callout>
           </Section>
 
@@ -456,8 +456,8 @@ const virtualizer = useVirtualizer({
             <Callout tone="neutral" icon={<Gauge className="size-4" />}>
               The 48 KB gzip delta is the measured page-specific JavaScript for{" "}
               <Code>/orders</Code> over the shared shell. That includes TanStack Table, TanStack
-              Virtual, SWR and the explorer toolbar. The full route is 298 KB gzip; the shared
-              baseline is 250 KB.
+              Virtual, SWR and the explorer toolbar. The full route is 313 KB gzip; the shared
+              baseline is 266 KB.
             </Callout>
           </Section>
 
@@ -584,10 +584,10 @@ const virtualizer = useVirtualizer({
                 </p>
               </div>
               <div className="rounded-lg border border-line bg-raised/40 p-3.5">
-                <p className="text-[11.5px] font-semibold">Why the shared baseline is 250 KB</p>
+                <p className="text-[11.5px] font-semibold">Why the shared baseline is 266 KB</p>
                 <p className="mt-1.5 text-[10.5px] leading-4 text-muted">
                   React 19, the App Router runtime, the persistent shell (sidebar, topbar, command
-                  palette, toasts, theme provider) and Radix primitives are shared across routes.
+                  palette, toasts, theme provider, Better Auth session client) and Radix primitives are shared across routes.
                   The shell is interactive on every page, so it is a deliberate cost. Hiding it
                   behind a client-only boundary would trade a smaller first load for a visible
                   layout flash on every navigation.
@@ -675,7 +675,8 @@ const virtualizer = useVirtualizer({
                 ["Empty and error states", "Every async surface has a loading skeleton, retry path and clear-filter action."],
                 ["Hydration-safe local state", "Persist stores use skipHydration and explicit rehydration flags."],
                 ["Honest demo actions", "Bulk actions and requisitions say they are demo-only; no fake success claims."],
-                ["Automated flows", "Playwright checks the grid, form, print and prefill flows on every CI run."],
+                ["Automated flows", "Playwright checks the grid, form, print, prefill, auth and tenant flows."],
+                ["Tenant boundaries", "Every read and write is scoped by organization_id and checked against a role."],
               ].map(([title, body]) => (
                 <div key={title} className="rounded-lg border border-line bg-surface px-3.5 py-3">
                   <p className="flex items-center gap-1.5 text-[11px] font-semibold">
@@ -687,8 +688,9 @@ const virtualizer = useVirtualizer({
               ))}
             </div>
             <Callout tone="brand" icon={<Gauge className="size-4" />}>
-              A local Lighthouse desktop run on the production build scored <strong className="text-ink">100</strong>{" "}
-              for performance, accessibility, best practices and SEO on all eight reviewed routes.
+              A local Lighthouse desktop run scored <strong className="text-ink">100</strong> for
+              accessibility, best practices and SEO on all eight routes, and 95–100 for performance
+              after tenant-aware server reads.
               Dashboard LCP is 0.28 s with CLS 0.005; the orders route is 0.26 s with CLS 0.012.
               Total Blocking Time was 50 ms and 70 ms respectively — an INP proxy, not a field INP
               measurement. The panel above records real browser metrics locally instead of claiming
@@ -722,7 +724,7 @@ const virtualizer = useVirtualizer({
                     [
                       "Seeded Postgres, generator fallback",
                       "Free Neon persistence with reproducible builds and no committed secrets.",
-                      "Audit trail exists; auth, concurrency and multi-user permissions do not.",
+                      "Auth, roles and tenant scoping exist; concurrency control and SSO do not.",
                     ],
                     [
                       "Fetch-all then client filter",

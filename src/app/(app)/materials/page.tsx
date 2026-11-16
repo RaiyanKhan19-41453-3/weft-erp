@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { STYLES } from "@/lib/constants";
 import { getMaterials } from "@/lib/data/server";
+import { getViewer } from "@/lib/auth-guards";
 import { buildMaterialsSummary, type Material } from "@/lib/data/materials";
 import { PageHeader } from "@/components/page-header";
 import { MaterialsTable } from "@/components/materials/materials-table";
@@ -31,6 +32,8 @@ export const metadata: Metadata = {
   description:
     "Fabric, trims and packaging inventory with coverage weeks, reorder status and inbound replenishment planning.",
 };
+
+export const instant = false;
 
 const STATUS_LABEL = {
   low: "Below reorder",
@@ -59,7 +62,8 @@ function suggestedBuy(material: Material) {
 }
 
 export default async function MaterialsPage() {
-  const materials = await getMaterials();
+  const viewer = await getViewer();
+  const materials = await getMaterials(viewer.orgId);
   const summary = buildMaterialsSummary(materials);
   const attention = materials
     .filter((material) => material.status !== "ok")

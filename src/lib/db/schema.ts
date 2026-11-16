@@ -8,12 +8,13 @@ import {
   text,
 } from "drizzle-orm/pg-core";
 import type { Material } from "@/lib/data/materials";
-import type { OrderDetail, OrderPriority, OrderStatus } from "@/lib/constants";
+import { DEMO_ORG_ID, type OrderDetail, type OrderPriority, type OrderStatus } from "@/lib/constants";
 
 export const purchaseOrders = pgTable(
   "purchase_orders",
   {
     id: text("id").primaryKey(),
+    organizationId: text("organization_id").notNull().default(DEMO_ORG_ID),
     buyer: text("buyer").notNull(),
     buyerCode: text("buyer_code").notNull(),
     buyerCountry: text("buyer_country").notNull(),
@@ -37,6 +38,7 @@ export const purchaseOrders = pgTable(
     isLocal: boolean("is_local").notNull().default(false),
   },
   (table) => [
+    index("purchase_orders_org_idx").on(table.organizationId),
     index("purchase_orders_status_idx").on(table.status),
     index("purchase_orders_buyer_idx").on(table.buyer),
     index("purchase_orders_due_date_idx").on(table.dueDate),
@@ -45,6 +47,7 @@ export const purchaseOrders = pgTable(
 );
 
 export const orderDetails = pgTable("order_details", {
+  organizationId: text("organization_id").notNull().default(DEMO_ORG_ID),
   orderId: text("order_id")
     .primaryKey()
     .references(() => purchaseOrders.id, { onDelete: "cascade" }),
@@ -57,6 +60,7 @@ export const orderEvents = pgTable(
   "order_events",
   {
     id: text("id").primaryKey(),
+    organizationId: text("organization_id").notNull().default(DEMO_ORG_ID),
     orderId: text("order_id")
       .notNull()
       .references(() => purchaseOrders.id, { onDelete: "cascade" }),
@@ -72,6 +76,7 @@ export const orderEvents = pgTable(
 export type OrderEvent = typeof orderEvents.$inferSelect;
 
 export const materials = pgTable("materials", {
+  organizationId: text("organization_id").notNull().default(DEMO_ORG_ID),
   sku: text("sku").primaryKey(),
   payload: jsonb("payload").$type<Material>().notNull(),
 });

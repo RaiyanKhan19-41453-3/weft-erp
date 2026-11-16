@@ -50,7 +50,8 @@ The entire workspace runs on Vercel's free tier with no paid services. It is con
 | `/materials` | Twelve fabric/trim SKUs with coverage weeks, reorder states, inbound supply and suggested buys. |
 | `/analytics` | Factory output, on-time trend, capacity utilisation (Unit 04 intentionally over capacity), defect causes, buyer scorecards and CSV export. |
 | `/architecture` | The engineering case study: RSC boundaries, cache design, grid tradeoffs, measured bundles, print strategy, accessibility and what was deliberately left out. |
-| `/api/orders` | `GET` cached JSON for the dataset; `POST` validates a new PO with the same Zod schema and returns `persisted: false`. |
+| `/sign-in`, `/sign-up` | Email/password auth with Better Auth; sign-up creates a tenant organization. |
+| `/api/orders` | `GET` scoped cached JSON for the active tenant; `POST` validates + persists a PO when signed in, otherwise falls back to browser-local demo mode. |
 
 Cross-cutting details: command palette on <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>K</kbd>, light/dark themes, skip link, reduced-motion support, mobile slide-over navigation, custom 404/error boundaries, toasts and visible focus states.
 
@@ -65,7 +66,8 @@ Cross-cutting details: command palette on <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>K<
 | Forms | React Hook Form 7, Zod 4, `@hookform/resolvers` |
 | Client state | Zustand 5 with `persist` + `skipHydration` |
 | Data fetching | SWR 2.5 for cached reads; Axios 1.21 for validated POST mutations |
-| Database | Optional Neon Postgres with Drizzle ORM; deterministic generator fallback |
+| Database | Neon Postgres with Drizzle ORM; deterministic generator fallback |
+| Auth & tenancy | Better Auth with organizations, roles and tenant-scoped queries |
 | UI | shadcn-style copy-in Radix/Tailwind primitives, cmdk, Sonner, Lucide icons, next-themes |
 | Charts | Recharts 3, loaded lazily |
 | Editor | Tiptap 3 + DOMPurify, loaded on demand |
@@ -108,7 +110,13 @@ The dashboard refreshes hourly; the order book and detail records are cached dai
 
 **State ownership.** SWR owns the read path, Axios owns the validated POST mutation, and Zustand owns drafts, browser-created POs, edited notes and table density with `skipHydration` and explicit rehydration flags to avoid SSR mismatches. Filters live in the URL so a copied queue link restores the view.
 
-**Persistence modes.** With no `DATABASE_URL`, the API validates submissions and returns the created record, but writes it to `localStorage` with `persisted: false`. When a free Neon `DATABASE_URL` is configured, the same route inserts into Postgres, revalidates the `orders` and `order-<id>` cache tags and returns `persisted: true`. Drafts, table density and theme stay in `localStorage` either way. Setup is documented in [`docs/DB_SETUP.md`](docs/DB_SETUP.md).
+**Persistence modes.** With no `DATABASE_URL`, the API validates submissions and returns the created record, but writes it to `localStorage` with `persisted: false`. When Neon is configured, signed-in users write into their organization; the API returns `persisted: true` and revalidates tenant cache tags. Public visitors get a read-only demo scoped to the seeded demo organization. Drafts, table density and theme stay in `localStorage` either way. Setup is documented in [`docs/DB_SETUP.md`](docs/DB_SETUP.md).
+
+## Auth and roles
+
+Better Auth runs in the app with Drizzle tables in the same Neon database. Sign-up creates an organization; the creator becomes `owner`. Roles are `owner`, `admin`, `merchandiser`, `factory` and `viewer`, declared with Better Auth access control. `getViewer()` resolves the session's active organization on the server; every read and write is scoped by `organization_id`. Mutations check both authentication and permission, and the proxy blocks unauthenticated API writes before they reach the route handler.
+
+The seeded demo account is `demo@weft.local` / `demo1234`. Public visitors can browse the demo organization read-only without signing in.
 
 ## The 5,000-row grid
 
@@ -137,16 +145,16 @@ These are **initial route JS** figures from the production build, summed from ea
 
 | Route | Initial JS, gzip | Over shared shell |
 | --- | ---: | ---: |
-| `/` | 252.4 KB | +2.3 KB |
-| `/analytics` | 252.9 KB | +2.8 KB |
-| `/architecture` | 254.3 KB | +4.2 KB |
-| `/materials` | 256.9 KB | +6.8 KB |
-| `/orders/[id]/invoice` | 260.1 KB | +10.0 KB |
-| `/orders/[id]` | 276.1 KB | +26.0 KB |
-| `/orders` | 297.7 KB | +47.6 KB |
-| `/orders/new` | 332.1 KB | +82.0 KB |
+| `/` | 268.0 KB | +2.3 KB |
+| `/analytics` | 268.5 KB | +2.8 KB |
+| `/architecture` | 269.9 KB | +4.2 KB |
+| `/materials` | 272.5 KB | +6.8 KB |
+| `/orders/[id]/invoice` | 275.7 KB | +10.0 KB |
+| `/orders/[id]` | 291.6 KB | +26.0 KB |
+| `/orders` | 313.2 KB | +47.6 KB |
+| `/orders/new` | 347.6 KB | +82.0 KB |
 
-The shared baseline is about 250 KB gzip: React 19, the App Router runtime, the persistent shell and Radix primitives. The shell is interactive on every page, so it is a deliberate cost; hiding it behind a client-only boundary would trade a smaller first load for a layout flash on every navigation. The dashboard adds only 2.3 KB because its KPI grid, risk table and buyer list are Server Components and its charts are lazy.
+The shared baseline is about 266 KB gzip: React 19, the App Router runtime, the persistent shell, Radix primitives and the Better Auth session client. The shell is interactive on every page, so this is a deliberate cost; hiding it behind a client-only boundary would trade a smaller first load for a layout flash on every navigation. The dashboard adds only 2.3 KB because its KPI grid, risk table and buyer list are Server Components and its charts are lazy.
 
 Weight kept off the first load:
 
@@ -186,8 +194,8 @@ Verified on 16 Nov 2026:
 - `npm test` — 12 Vitest tests across data builders, materials, schema rules, CSV safety, DB mappers and invoice wording
 - Production QA — creating a local PO, draft autosave/restore, local detail after reload, local invoice print, no console errors
 - Print QA — sample invoice is exactly two A4 pages
-- Lighthouse desktop — 100/100/100/100 on all eight reviewed routes, with no failed accessibility audits
-- Playwright — 5 end-to-end tests covering dashboard, command palette, Web Vitals panel, the 5,000-row explorer, PO draft/create/print and materials→PO prefill
+- Lighthouse desktop — accessibility, best practices and SEO 100 on all eight routes; performance 95–100 after tenant-aware server reads, with no failed accessibility audits
+- Playwright — 7 end-to-end tests covering dashboard, command palette, Web Vitals panel, the 5,000-row explorer, PO draft/create/print, materials→PO prefill, auth and tenant isolation
 - Browser Web Vitals — `web-vitals` reports LCP, INP, CLS, FCP and TTFB into a case-study panel using locally stored values only
 
 The Vitest suite covers the deterministic order book, dashboard/analytics consistency, size allocation, materials thresholds, new-order validation, CSV safety, DB mappers and amount-in-words formatting. Playwright covers the critical UI flows on every CI run. Visual regression and field INP collection are still out of scope.
@@ -197,7 +205,7 @@ Accessibility work includes a skip link, labelled landmarks, semantic data-grid 
 ## Demo boundaries
 
 - All manufacturer, buyer, supplier, purchase order, invoice, barcode and performance data is **synthetic**. Weft is a portfolio project; nothing here is a real commercial document.
-- There is no authentication or multi-user behaviour. Status changes are real database writes with an audit trail; bulk actions that look destructive are labelled demo-only or disabled.
+- Authentication and multi-tenant role boundaries are real, but there are no real customers. Status changes are database writes with an audit trail; bulk actions that look destructive are labelled demo-only or disabled.
 - With a database configured, newly created POs are real Postgres rows served to every visitor. Without one they live in `localStorage` only. Drafts, notes, table density and theme remain per-browser in Phase 1.
 - The interface is desktop-first. Compact 28–32 px controls suit mouse and keyboard work but are below the 44 px touch-target recommendation. Mobile gets a slide-over nav and horizontally scrollable tables rather than a separate operator app.
 - No field INP, user count or synthetic benchmark is claimed. Lighthouse figures are explicitly local lab measurements.
@@ -275,6 +283,8 @@ src/
   app/
     (app)/                  dashboard, orders, detail, invoice, materials,
                             analytics, architecture
+    (auth)/                 sign-in and sign-up pages
+    api/auth/[...all]/      Better Auth handler
     api/orders/route.ts     cached GET + validated POST
     api/orders/[id]/status/ optimistic status mutations + audit trail
     api/barcode/route.ts    server-generated Code 39 SVG
@@ -286,7 +296,11 @@ src/
     materials/ shell/ ui/   table, navigation, primitives
   lib/
     data/                   seeded generator, materials, server cache helpers
-    db/                     Drizzle schema, client, mappers, seed script
+    db/                     Drizzle schema, auth schema, client, mappers, seed
+    auth.ts                 Better Auth server config
+    auth-client.ts          Better Auth React client
+    auth-guards.ts          viewer, role and tenant helpers
+    permissions.ts          role/permission definitions
     stores/                 Zustand stores (drafts, local POs, notes, prefs)
     validation/             shared Zod schema
     __tests__/              Vitest suite

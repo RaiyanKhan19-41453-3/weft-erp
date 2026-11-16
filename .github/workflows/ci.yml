@@ -9,6 +9,9 @@ jobs:
   verify:
     name: Typecheck, lint, test, build
     runs-on: ubuntu-latest
+    env:
+      BETTER_AUTH_SECRET: ci-only-secret-not-a-real-key-1234567890
+      BETTER_AUTH_URL: http://127.0.0.1:3100
 
     steps:
       - name: Checkout

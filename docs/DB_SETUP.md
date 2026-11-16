@@ -87,6 +87,23 @@ npm run db:push
 
 Generated SQL migrations live in `drizzle/`.
 
+## Auth variables
+
+`neon init` does not create auth secrets. The app also needs:
+
+```env
+BETTER_AUTH_SECRET=<random-32-byte-secret>
+BETTER_AUTH_URL=http://localhost:3000
+```
+
+Generate a secret with:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+In Vercel, set `BETTER_AUTH_SECRET` for Production, Preview and Development. Set `BETTER_AUTH_URL` only for Production (`https://weft-erp.vercel.app`); leave it unset on Preview so Better Auth infers each preview URL from the request. After applying schema changes, run `npm run db:push` then `npm run db:seed` to create the demo organization and user.
+
 ## Troubleshooting
 
 If Neon rejects the connection string as an invalid URL **only on Vercel**, it was probably stored with literal quote characters. Re-add the dotenv-parsed value:

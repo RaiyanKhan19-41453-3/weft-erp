@@ -13,6 +13,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { getAnalytics } from "@/lib/data/server";
+import { getViewer } from "@/lib/auth-guards";
 import { FACTORIES } from "@/lib/constants";
 import { PageHeader } from "@/components/page-header";
 import { FactoryOutputChart, OnTimeTrendChart } from "@/components/analytics/charts";
@@ -36,8 +37,11 @@ export const metadata: Metadata = {
     "Factory output, on-time shipment trends, capacity utilisation, defect causes and buyer scorecards for a synthetic apparel operation.",
 };
 
+export const instant = false;
+
 export default async function AnalyticsPage() {
-  const data = await getAnalytics();
+  const viewer = await getViewer();
+  const data = await getAnalytics(viewer.orgId);
   const monthlyTotals = data.factoryOutput.map((row) =>
     FACTORIES.reduce((total, factory) => total + Number(row[factory.short] ?? 0), 0),
   );

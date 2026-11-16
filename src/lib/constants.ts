@@ -1,3 +1,4 @@
+export const DEMO_ORG_ID = "org_weft_demo";
 export const DEMO_TODAY = "2026-11-16T00:00:00.000Z";
 export const DEMO_TODAY_LABEL = "16 Nov 2026";
 
@@ -19,6 +20,7 @@ export type OrderPriority = (typeof ORDER_PRIORITIES)[number];
 
 export type Order = {
   id: string;
+  organizationId?: string;
   buyer: string;
   buyerCode: string;
   buyerCountry: string;

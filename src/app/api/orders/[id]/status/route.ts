@@ -1,6 +1,7 @@
 import { revalidateTag } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
+import { getViewer, hasPermission } from "@/lib/auth-guards";
 import { ORDER_STATUSES } from "@/lib/constants";
 import { getDb, hasDatabase } from "@/lib/db";
 import { rowToOrder } from "@/lib/db/mappers";
@@ -14,6 +15,14 @@ const statusSchema = z.object({
 type Context = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: Context) {
+  const viewer = await getViewer();
+  if (!viewer.authenticated) {
+    return Response.json({ error: "Sign in required." }, { status: 401 });
+  }
+  if (!hasPermission(viewer, "order", "status")) {
+    return Response.json({ error: "Your role cannot change order status." }, { status: 403 });
+  }
+
   if (!hasDatabase()) {
     return Response.json(
       { error: "Status changes need a configured database." },
@@ -39,7 +48,7 @@ export async function POST(request: Request, { params }: Context) {
     const [current] = await db
       .select()
       .from(purchaseOrders)
-      .where(eq(purchaseOrders.id, id))
+      .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.organizationId, viewer.orgId)))
       .limit(1);
 
     if (!current) {
@@ -53,24 +62,25 @@ export async function POST(request: Request, { params }: Context) {
     const [updated] = await db
       .update(purchaseOrders)
       .set({ status: parsed.data.status })
-      .where(eq(purchaseOrders.id, id))
+      .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.organizationId, viewer.orgId)))
       .returning();
 
     const [detail] = await db
       .select()
       .from(orderDetails)
-      .where(eq(orderDetails.orderId, id))
+      .where(and(eq(orderDetails.orderId, id), eq(orderDetails.organizationId, viewer.orgId)))
       .limit(1);
 
     if (detail) {
       await db
         .update(orderDetails)
         .set({ detail: { ...detail.detail, status: parsed.data.status } })
-        .where(eq(orderDetails.orderId, id));
+        .where(and(eq(orderDetails.orderId, id), eq(orderDetails.organizationId, viewer.orgId)));
     }
 
     await db.insert(orderEvents).values({
       id: crypto.randomUUID(),
+      organizationId: viewer.orgId,
       orderId: id,
       fromStatus: current.status,
       toStatus: parsed.data.status,
@@ -80,6 +90,7 @@ export async function POST(request: Request, { params }: Context) {
     });
 
     revalidateTag("orders", "max");
+    revalidateTag(`orders-${viewer.orgId}`, "max");
     revalidateTag(`order-${id}`, "max");
     revalidateTag(`order-events-${id}`, "max");
 

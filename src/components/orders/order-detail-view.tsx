@@ -95,11 +95,11 @@ function NotesEditorLoading() {
 export function OrderDetailView({
   order,
   events = [],
-  mutationsEnabled = false,
+  canChangeStatus = false,
 }: {
   order: OrderDetail;
   events?: OrderEvent[];
-  mutationsEnabled?: boolean;
+  canChangeStatus?: boolean;
 }) {
   const router = useRouter();
   const [notesOpen, setNotesOpen] = React.useState(false);
@@ -174,7 +174,7 @@ export function OrderDetailView({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <StatusControl order={order} enabled={mutationsEnabled} />
+            <StatusControl order={order} enabled={canChangeStatus} />
             <Button variant="outline" onClick={() => setNotesOpen(true)}>
               <Pencil />
               Edit notes

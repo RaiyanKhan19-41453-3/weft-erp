@@ -10,6 +10,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { getDashboard } from "@/lib/data/server";
+import { getViewer } from "@/lib/auth-guards";
 import { PageHeader } from "@/components/page-header";
 import { KpiGrid } from "@/components/dashboard/kpi-card";
 import { ThroughputChart, PipelineChart } from "@/components/dashboard/charts";
@@ -33,8 +34,11 @@ export const metadata: Metadata = {
   title: "Operations overview",
 };
 
+export const instant = false;
+
 export default async function DashboardPage() {
-  const data = await getDashboard();
+  const viewer = await getViewer();
+  const data = await getDashboard(viewer.orgId);
   const maxBuyerValue = Math.max(...data.topBuyers.map((buyer) => buyer.value), 1);
 
   return (

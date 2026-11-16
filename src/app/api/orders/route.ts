@@ -1,4 +1,5 @@
 import { revalidateTag } from "next/cache";
+import { getViewer, hasPermission } from "@/lib/auth-guards";
 import { buildLocalDetail, buildLocalOrder, type LocalOrderInput } from "@/lib/data/orders";
 import { getOrders } from "@/lib/data/server";
 import { getDb, hasDatabase } from "@/lib/db";
@@ -16,7 +17,8 @@ function escapeHtml(value: string) {
 }
 
 export async function GET() {
-  const orders = await getOrders();
+  const viewer = await getViewer();
+  const orders = await getOrders(viewer.orgId);
   return Response.json(
     { orders, count: orders.length },
     {
@@ -28,6 +30,16 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const viewer = await getViewer();
+  if (hasDatabase()) {
+    if (!viewer.authenticated) {
+      return Response.json({ error: "Sign in required." }, { status: 401 });
+    }
+    if (!hasPermission(viewer, "order", "create")) {
+      return Response.json({ error: "Your role cannot create orders." }, { status: 403 });
+    }
+  }
+
   let payload: unknown;
   try {
     payload = await request.json();
@@ -72,7 +84,7 @@ export async function POST(request: Request) {
 
       const inserted = await db
         .insert(purchaseOrders)
-        .values(orderToRow(persistedOrder))
+        .values({ ...orderToRow(persistedOrder), organizationId: viewer.orgId })
         .returning({ id: purchaseOrders.id });
 
       if (!inserted.length) {
@@ -80,6 +92,7 @@ export async function POST(request: Request) {
       }
 
       await db.insert(orderDetails).values({
+        organizationId: viewer.orgId,
         orderId: persistedOrder.id,
         detail: persistedDetail,
         colour: persistedDetail.colour,
@@ -87,6 +100,7 @@ export async function POST(request: Request) {
       });
 
       revalidateTag("orders", "max");
+      revalidateTag(`orders-${viewer.orgId}`, "max");
       revalidateTag(`order-${id}`, "max");
 
       return Response.json(

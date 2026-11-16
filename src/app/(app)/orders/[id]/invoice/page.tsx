@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getOrderDetail, getOrderIds } from "@/lib/data/server";
+import { getViewer } from "@/lib/auth-guards";
 import { InvoiceDocument } from "@/components/orders/invoice-document";
 import { LocalInvoice } from "@/components/orders/local-invoice";
 import { PrintToolbar } from "@/components/orders/print-toolbar";
@@ -11,6 +12,8 @@ export const metadata: Metadata = {
   description:
     "A4 print-ready commercial invoice and packing list with a print stylesheet and Code 39-style barcode.",
 };
+
+export const instant = false;
 
 type Params = Promise<{ id: string }>;
 
@@ -29,7 +32,8 @@ export default function InvoicePage({ params }: { params: Params }) {
 
 async function InvoiceContent({ params }: { params: Params }) {
   const { id } = await params;
-  const order = await getOrderDetail(id);
+  const viewer = await getViewer();
+  const order = await getOrderDetail(id, viewer.orgId);
 
   if (!order) {
     return <LocalInvoice id={id} />;

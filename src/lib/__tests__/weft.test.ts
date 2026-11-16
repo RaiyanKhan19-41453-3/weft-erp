@@ -10,7 +10,7 @@ import { newOrderSchema } from "@/lib/validation/new-order";
 import { amountInWords } from "@/lib/words";
 import { csvEscape } from "@/lib/utils";
 import { orderToRow, rowToOrder } from "@/lib/db/mappers";
-import { DEMO_TODAY } from "@/lib/constants";
+import { DEMO_ORG_ID, DEMO_TODAY } from "@/lib/constants";
 
 const orders = generateOrders();
 const activeStatuses = new Set(["confirmed", "in-production", "qc", "ready"]);
@@ -141,9 +141,10 @@ describe("database mappers", () => {
       ...row,
       onTime: row.onTime ?? null,
       atRisk: row.atRisk ?? false,
+      organizationId: row.organizationId ?? DEMO_ORG_ID,
       isLocal: row.isLocal ?? false,
     });
 
-    expect(restored).toEqual({ ...original, isLocal: false });
+    expect(restored).toEqual({ ...original, organizationId: DEMO_ORG_ID, isLocal: false });
   });
 });
