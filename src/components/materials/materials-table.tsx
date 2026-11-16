@@ -108,6 +108,7 @@ export function MaterialsTable({ materials }: { materials: Material[] }) {
         "Colour",
         "Supplier",
         "On hand",
+        "Reserved",
         "Unit",
         "Reorder point",
         "Incoming",
@@ -127,6 +128,7 @@ export function MaterialsTable({ materials }: { materials: Material[] }) {
         material.colour,
         material.supplier,
         material.onHand,
+        material.reserved ?? 0,
         material.unit,
         material.reorderPoint,
         material.incoming,
@@ -246,6 +248,7 @@ export function MaterialsTable({ materials }: { materials: Material[] }) {
                 onSort={toggleSort}
                 align="right"
               />
+              <th className="px-3 py-2 text-right font-medium">Reserved</th>
               <SortHeader
                 label="Coverage"
                 sortKey="coverage"
@@ -291,7 +294,7 @@ export function MaterialsTable({ materials }: { materials: Material[] }) {
                     <p className="text-[9.5px] text-faint">{material.category}</p>
                   </td>
                   <td className="px-3 py-2.5 text-right">
-                    <p className="numeric text-[11.5px] font-medium">
+                    <p className="numeric text-[11.5px] font-medium" data-testid={`onhand-${material.sku}`}>
                       {formatNumber(material.onHand)} {material.unit}
                     </p>
                     <p className="numeric text-[9.5px] text-faint">
@@ -303,6 +306,11 @@ export function MaterialsTable({ materials }: { materials: Material[] }) {
                         style={{ width: `${Math.max(4, ratio)}%` }}
                       />
                     </div>
+                  </td>
+                  <td className="px-3 py-2.5 text-right">
+                    <p className="numeric text-[11.5px] font-medium" data-testid={`reserved-${material.sku}`}>
+                      {formatNumber(material.reserved ?? 0)} {material.unit}
+                    </p>
                   </td>
                   <td className="px-3 py-2.5">
                     <p

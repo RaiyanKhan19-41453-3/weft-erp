@@ -16,13 +16,18 @@ export type Material = {
   weeklyUse: number;
   unitCost: number;
   status: MaterialStatus;
+  baselineOnHand?: number;
+  reserved?: number;
+  effectiveOnHand?: number;
+  openDemand?: number;
+  suggestedBuy?: number;
 };
 
 export type MaterialAlert = Material;
 
 type MaterialInput = Omit<Material, "status">;
 
-function withStatus(material: MaterialInput): Material {
+export function withStatus(material: MaterialInput): Material {
   const status: MaterialStatus =
     material.onHand <= material.reorderPoint
       ? "low"

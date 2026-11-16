@@ -679,6 +679,7 @@ const virtualizer = useVirtualizer({
                 ["Automated flows", "Playwright checks the grid, form, print, prefill, auth and tenant flows."],
                 ["Tenant boundaries", "Every read and write is scoped by organization_id and checked against a role."],
                 ["Governed workflow", "Status transitions are validated, approval-gated and recorded with a diff."],
+                ["MRP flow", "BOM reservations, goods receipts and coverage are derived from the same order records."],
               ].map(([title, body]) => (
                 <div key={title} className="rounded-lg border border-line bg-surface px-3.5 py-3">
                   <p className="flex items-center gap-1.5 text-[11px] font-semibold">

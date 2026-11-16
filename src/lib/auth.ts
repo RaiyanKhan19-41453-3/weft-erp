@@ -28,6 +28,7 @@ export const auth = betterAuth({
     },
   }),
   emailAndPassword: { enabled: true },
+  rateLimit: { enabled: false },
   session: { cookieCache: { enabled: true, maxAge: 5 * 60 } },
   trustedOrigins: [
     "http://localhost:3000",

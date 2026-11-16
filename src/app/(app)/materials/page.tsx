@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import { STYLES } from "@/lib/constants";
 import { getMaterials } from "@/lib/data/server";
-import { getViewer } from "@/lib/auth-guards";
+import { getViewer, hasPermission } from "@/lib/auth-guards";
+import { ReceiptForm } from "@/components/materials/receipt-form";
 import { buildMaterialsSummary, type Material } from "@/lib/data/materials";
 import { PageHeader } from "@/components/page-header";
 import { MaterialsTable } from "@/components/materials/materials-table";
@@ -63,6 +64,7 @@ function suggestedBuy(material: Material) {
 
 export default async function MaterialsPage() {
   const viewer = await getViewer();
+  const canReceive = viewer.authenticated && hasPermission(viewer, "material", "update");
   const materials = await getMaterials(viewer.orgId);
   const summary = buildMaterialsSummary(materials);
   const attention = materials
@@ -203,6 +205,7 @@ export default async function MaterialsPage() {
                     <th className="px-3 py-2 font-medium">Status</th>
                     <th className="px-3 py-2 text-right font-medium">Cover</th>
                     <th className="px-3 py-2 font-medium">Inbound</th>
+                    <th className="px-3 py-2 text-right font-medium">Reserved</th>
                     <th className="px-3 py-2 text-right font-medium">Suggested buy</th>
                     <th className="px-3 py-2 font-medium">Action</th>
                   </tr>
@@ -248,6 +251,12 @@ export default async function MaterialsPage() {
                         ) : (
                           <span className="text-[10px] text-faint">None scheduled</span>
                         )}
+                      </td>
+                      <td className="px-3 py-2.5 text-right">
+                        <p className="numeric font-medium" data-testid={`reserved-${material.sku}`}>
+                          {formatNumber(material.reserved ?? 0)} {material.unit}
+                        </p>
+                        <p className="text-[9.5px] text-faint">open orders</p>
                       </td>
                       <td className="px-3 py-2.5 text-right">
                         {buy > 0 ? (
@@ -337,6 +346,22 @@ export default async function MaterialsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {canReceive ? (
+          <Card>
+            <CardHeader>
+              <div>
+                <CardTitle>Record goods receipt</CardTitle>
+                <CardDescription>
+                  Add stock to a SKU; coverage and suggested buys recalculate immediately.
+                </CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ReceiptForm materials={materials} />
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
 
       <div id="materials-table" className="mt-3 scroll-mt-20">

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowUpRight,
+  Boxes,
   CalendarDays,
   Check,
   CircleAlert,
@@ -66,6 +67,7 @@ import { StatusControl } from "@/components/orders/status-control";
 import { ApprovalPanel } from "@/components/orders/approval-panel";
 import type { OrderApproval, OrderEvent } from "@/lib/db/schema";
 import type { WeftRole } from "@/lib/permissions";
+import type { MaterialDemand } from "@/lib/bom";
 
 const NotesEditorDialog = dynamic(
   () => import("@/components/orders/notes-editor").then((module) => module.NotesEditorDialog),
@@ -98,6 +100,7 @@ export function OrderDetailView({
   order,
   events = [],
   approvals = [],
+  materialDemand = [],
   canChangeStatus = false,
   canDecideApprovals = false,
   role = "public",
@@ -105,6 +108,7 @@ export function OrderDetailView({
   order: OrderDetail;
   events?: OrderEvent[];
   approvals?: OrderApproval[];
+  materialDemand?: Array<MaterialDemand & { name: string }>;
   canChangeStatus?: boolean;
   canDecideApprovals?: boolean;
   role?: WeftRole | "public";
@@ -352,6 +356,16 @@ export function OrderDetailView({
                   label="Incoterm"
                   value={order.shipping.incoterm}
                   sub={order.shipping.mode}
+                />
+                <Field
+                  label="PO value"
+                  value={formatMoney(order.value)}
+                  sub={`${formatMoneyFull(order.unitPrice)} per piece`}
+                />
+                <Field
+                  label="Landed cost"
+                  value={formatMoney(order.value * 1.08)}
+                  sub="Freight 6% + duty 2% estimate"
                 />
               </dl>
 
@@ -615,6 +629,34 @@ export function OrderDetailView({
         </div>
 
         <div className="space-y-3">
+          {materialDemand.length > 0 ? (
+            <Card>
+              <CardHeader className="pb-2">
+                <div>
+                  <CardTitle>Material demand</CardTitle>
+                  <CardDescription>Exploded from the bill of materials</CardDescription>
+                </div>
+                <Boxes className="size-4 text-muted" />
+              </CardHeader>
+              <CardContent className="space-y-1.5 pt-0">
+                {materialDemand.map((item) => (
+                  <div
+                    key={item.sku}
+                    className="flex items-baseline justify-between gap-2 text-[10.5px]"
+                  >
+                    <span className="min-w-0 truncate text-muted">{item.name}</span>
+                    <span className="numeric shrink-0 font-medium">
+                      {formatNumber(item.quantity)} {item.unit}
+                    </span>
+                  </div>
+                ))}
+                <p className="border-t border-line pt-2 text-[9.5px] text-faint">
+                  Reserved against open orders in the materials view.
+                </p>
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card>
             <CardHeader className="pb-2">
               <div>

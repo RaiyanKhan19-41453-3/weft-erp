@@ -2,7 +2,7 @@ import { revalidateTag } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "./db";
 import { rowToOrder } from "./db/mappers";
-import { orderDetails, orderEvents, purchaseOrders } from "./db/schema";
+import { materialReservations, orderDetails, orderEvents, purchaseOrders } from "./db/schema";
 import { checkTransition } from "./workflow";
 import type { WeftRole } from "./permissions";
 import type { OrderStatus } from "./constants";
@@ -49,6 +49,17 @@ export async function applyTransition({
       .where(and(eq(orderDetails.orderId, orderId), eq(orderDetails.organizationId, organizationId)));
   }
 
+  if (to === "cancelled") {
+    await db
+      .delete(materialReservations)
+      .where(
+        and(
+          eq(materialReservations.orderId, orderId),
+          eq(materialReservations.organizationId, organizationId),
+        ),
+      );
+  }
+
   await db.insert(orderEvents).values({
     id: crypto.randomUUID(),
     organizationId,
@@ -66,6 +77,7 @@ export async function applyTransition({
   revalidateTag(`order-${orderId}`, "max");
   revalidateTag(`order-events-${orderId}`, "max");
   revalidateTag(`approvals-${orderId}`, "max");
+  revalidateTag(`materials-${organizationId}`, { expire: 0 });
 
   return { ok: true, order: rowToOrder(updated) };
 }

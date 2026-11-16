@@ -1,10 +1,11 @@
 import { revalidateTag } from "next/cache";
+import { bomForStyle } from "@/lib/bom";
 import { getViewer, hasPermission } from "@/lib/auth-guards";
 import { buildLocalDetail, buildLocalOrder, type LocalOrderInput } from "@/lib/data/orders";
 import { getOrders } from "@/lib/data/server";
 import { getDb, hasDatabase } from "@/lib/db";
 import { orderToRow } from "@/lib/db/mappers";
-import { orderDetails, purchaseOrders } from "@/lib/db/schema";
+import { materialReservations, orderDetails, purchaseOrders } from "@/lib/db/schema";
 import { newOrderSchema } from "@/lib/validation/new-order";
 
 function escapeHtml(value: string) {
@@ -99,9 +100,28 @@ export async function POST(request: Request) {
         updatedAt: persistedDetail.poDate,
       });
 
+      const requirements = new Map<string, number>();
+      for (const line of input.lineItems) {
+        for (const item of bomForStyle(line.style)) {
+          const quantity = Math.round(line.quantity * item.perPiece * 100) / 100;
+          requirements.set(item.sku, (requirements.get(item.sku) ?? 0) + quantity);
+        }
+      }
+      await db.insert(materialReservations).values(
+        [...requirements].map(([sku, quantity]) => ({
+          id: crypto.randomUUID(),
+          organizationId: viewer.orgId,
+          orderId: persistedOrder.id,
+          materialSku: sku,
+          quantity: String(quantity),
+          createdAt: new Date().toISOString(),
+        })),
+      );
+
       revalidateTag("orders", "max");
       revalidateTag(`orders-${viewer.orgId}`, "max");
       revalidateTag(`order-${id}`, "max");
+      revalidateTag(`materials-${viewer.orgId}`, { expire: 0 });
 
       return Response.json(
         {

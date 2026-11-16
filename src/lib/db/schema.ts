@@ -104,6 +104,48 @@ export const orderApprovals = pgTable(
 
 export type OrderApproval = typeof orderApprovals.$inferSelect;
 
+export const bomLines = pgTable(
+  "bom_lines",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id").notNull().default(DEMO_ORG_ID),
+    style: text("style").notNull(),
+    materialSku: text("material_sku").notNull(),
+    quantityPerPiece: numeric("quantity_per_piece", { precision: 10, scale: 4 }).notNull(),
+    unit: text("unit").notNull(),
+  },
+  (table) => [index("bom_lines_style_idx").on(table.organizationId, table.style)],
+);
+
+export const materialReservations = pgTable(
+  "material_reservations",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id").notNull().default(DEMO_ORG_ID),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => purchaseOrders.id, { onDelete: "cascade" }),
+    materialSku: text("material_sku").notNull(),
+    quantity: numeric("quantity", { precision: 12, scale: 2 }).notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("material_reservations_sku_idx").on(table.organizationId, table.materialSku)],
+);
+
+export const goodsReceipts = pgTable(
+  "goods_receipts",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id").notNull().default(DEMO_ORG_ID),
+    materialSku: text("material_sku").notNull(),
+    quantity: numeric("quantity", { precision: 12, scale: 2 }).notNull(),
+    supplier: text("supplier"),
+    note: text("note"),
+    receivedAt: text("received_at").notNull(),
+  },
+  (table) => [index("goods_receipts_sku_idx").on(table.organizationId, table.materialSku)],
+);
+
 export const materials = pgTable("materials", {
   organizationId: text("organization_id").notNull().default(DEMO_ORG_ID),
   sku: text("sku").primaryKey(),

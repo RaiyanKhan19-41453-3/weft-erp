@@ -1,12 +1,20 @@
 import "../load-env";
 import { sql } from "drizzle-orm";
 import { hashPassword } from "better-auth/crypto";
-import { DEMO_ORG_ID } from "../constants";
+import { bomForStyle } from "../bom";
+import { DEMO_ORG_ID, STYLES } from "../constants";
 import { buildOrderDetail, generateOrders } from "../data/orders";
 import { MATERIALS } from "../data/materials";
 import { getDb } from "./index";
 import { orderToRow } from "./mappers";
-import { materials, orderDetails, orderEvents, purchaseOrders } from "./schema";
+import {
+  bomLines,
+  materialReservations,
+  materials,
+  orderDetails,
+  orderEvents,
+  purchaseOrders,
+} from "./schema";
 import { account, member, organization, user } from "./auth-schema";
 
 if (!process.env.DATABASE_URL) {
@@ -115,6 +123,24 @@ async function main() {
       )
       .onConflictDoNothing();
 
+    await db
+      .insert(materialReservations)
+      .values(
+        batch
+          .filter((order) => order.status !== "cancelled")
+          .flatMap((order) =>
+            bomForStyle(order.style).map((item) => ({
+              id: `${order.id}-res-${item.sku}`,
+              organizationId: DEMO_ORG_ID,
+              orderId: order.id,
+              materialSku: item.sku,
+              quantity: String(Math.round(order.quantity * item.perPiece * 0.0001 * 100) / 100),
+              createdAt: order.createdAt,
+            })),
+          ),
+      )
+      .onConflictDoNothing();
+
     console.log(`  batch ${index + 1}/${Math.ceil(orders.length / BATCH)}`);
   }
 
@@ -129,6 +155,19 @@ async function main() {
       })),
     )
     .onConflictDoNothing();
+
+  console.log("Seeding bills of materials...");
+  const bomRows = STYLES.flatMap((style) =>
+    bomForStyle(style.name).map((line) => ({
+      id: `${style.code}-${line.sku}-bom`,
+      organizationId: DEMO_ORG_ID,
+      style: style.name,
+      materialSku: line.sku,
+      quantityPerPiece: String(line.perPiece),
+      unit: line.unit,
+    })),
+  );
+  await db.insert(bomLines).values(bomRows).onConflictDoNothing();
 
   const [{ count: orderCount }] = await db
     .select({ count: sql<number>`count(*)::int` })

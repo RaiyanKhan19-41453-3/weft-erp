@@ -74,18 +74,18 @@ This file tracks the work from a portfolio demo toward an enterprise-grade multi
 
 ---
 
-## Milestone 4 — Inventory and MRP depth `[ ]`
+## Milestone 4 — Inventory and MRP depth `[x]` — `PENDING_DEPLOY`
 
 **Goal:** make the ERP domain behave coherently across pages.
 
-- [ ] Bill of materials per style
-- [ ] Material reservations per PO
-- [ ] Goods-in receipts that update stock
-- [ ] Coverage recomputed from real orders and receipts
-- [ ] Shortage detection linked to open POs
-- [ ] Supplier lead times and reorder policies
-- [ ] Landed cost: unit price + freight + duty
-- [ ] E2E: creating/advancing a PO changes material coverage
+- [x] Bill of materials per style
+- [x] Material reservations per PO
+- [x] Goods-in receipts that update stock
+- [x] Coverage recomputed from real orders and receipts
+- [x] Shortage detection linked to open POs
+- [x] Supplier lead times and reorder policies
+- [x] Landed cost: unit price + freight + duty
+- [x] E2E: creating/advancing a PO changes material coverage
 
 ---
 
