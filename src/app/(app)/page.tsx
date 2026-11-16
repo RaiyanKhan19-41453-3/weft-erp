@@ -84,14 +84,14 @@ export default async function DashboardPage() {
             <p className="text-[12.5px] font-medium text-amber-900 dark:text-amber-200">
               {data.atRiskOrders} purchase orders are overdue or behind schedule
             </p>
-            <p className="text-[11px] text-amber-800/80 dark:text-amber-200/60">
+            <p className="text-[11px] text-amber-900 dark:text-amber-200/90">
               {formatMoney(data.atRiskValue)} of pipeline value is exposed. Oldest due dates are
               shown first.
             </p>
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden text-right sm:block">
-              <span className="block text-[9.5px] uppercase tracking-[0.08em] text-amber-700/70 dark:text-amber-300/60">
+              <span className="block text-[9.5px] uppercase tracking-[0.08em] text-amber-800 dark:text-amber-200/90">
                 On-time
               </span>
               <span className="numeric text-[13px] font-semibold text-amber-900 dark:text-amber-200">

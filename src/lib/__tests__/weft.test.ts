@@ -8,6 +8,7 @@ import {
 import { buildMaterialsSummary } from "@/lib/data/materials";
 import { newOrderSchema } from "@/lib/validation/new-order";
 import { amountInWords } from "@/lib/words";
+import { csvEscape } from "@/lib/utils";
 import { DEMO_TODAY } from "@/lib/constants";
 
 const orders = generateOrders();
@@ -118,6 +119,15 @@ describe("invoice amount in words", () => {
       "US Dollars fifty-nine thousand five hundred forty-four and ten cents only",
     );
     expect(amountInWords(100)).toBe("US Dollars one hundred only");
-    expect(amountInWords(1.01)).toBe("US Dollars one and one cents only");
+    expect(amountInWords(1.01)).toBe("US Dollars one and one cent only");
+  });
+});
+
+describe("csv export", () => {
+  it("neutralizes spreadsheet formula injection without changing numbers", () => {
+    expect(csvEscape("=1+1")).toBe("'=1+1");
+    expect(csvEscape("  @SUM(A1)")).toBe("'  @SUM(A1)");
+    expect(csvEscape('North, "Pine"')).toBe('"North, ""Pine"""');
+    expect(csvEscape(-125)).toBe("-125");
   });
 });

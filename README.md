@@ -63,8 +63,9 @@ Cross-cutting details: command palette on <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>K<
 | Styling | Tailwind CSS 4.3.3, CSS custom-property design tokens, Geist Sans/Mono |
 | Data grid | TanStack Table 8, TanStack Virtual 3 |
 | Forms | React Hook Form 7, Zod 4, `@hookform/resolvers` |
-| Client state | Zustand 5 with `persist` + `skipHydration`; SWR 2.5 for the read path |
-| UI | Radix UI primitives, cmdk, Sonner, Lucide icons, next-themes |
+| Client state | Zustand 5 with `persist` + `skipHydration` |
+| Data fetching | SWR 2.5 for cached reads; Axios 1.21 for validated POST mutations |
+| UI | shadcn-style copy-in Radix/Tailwind primitives, cmdk, Sonner, Lucide icons, next-themes |
 | Charts | Recharts 3, loaded lazily |
 | Editor | Tiptap 3 + DOMPurify, loaded on demand |
 | Tests | Vitest 5 |
@@ -102,7 +103,7 @@ The dashboard refreshes hourly; the order book and detail records are cached dai
 
 **Server/client line.** Layout, KPI grids, risk queues, order summaries, invoices and analytics copy are Server Components. Client islands exist only for interaction: the table, charts, command palette, theme toggle, form, notes editor and print toolbar. Charts and Tiptap are lazy-loaded so their weight stays off first paint.
 
-**State ownership.** SWR owns the read path. Zustand owns drafts, browser-created POs, edited notes and table density, with `skipHydration` and explicit rehydration flags to avoid SSR mismatches. Filters live in the URL so a copied queue link restores the view.
+**State ownership.** SWR owns the read path, Axios owns the validated POST mutation, and Zustand owns drafts, browser-created POs, edited notes and table density with `skipHydration` and explicit rehydration flags to avoid SSR mismatches. Filters live in the URL so a copied queue link restores the view.
 
 **Why local POs are browser-only.** The API validates submissions and returns the created record, but it does not write to a database. Created POs are clearly labelled and stored in `localStorage`; the API response includes `persisted: false`. This keeps the create flow fully demonstrable on free hosting without pretending there is a backend.
 
@@ -129,17 +130,17 @@ Drafts are debounced into a versioned Zustand store. Returning to the page resto
 
 ## Performance
 
-These are **initial route JS** figures from the production build, summed from each route's script graph and gzipped at maximum compression. They measure transfer size, not parse/execute cost. No Lighthouse score is invented.
+These are **initial route JS** figures from the production build, summed from each route's script graph and gzipped at maximum compression. They measure transfer size, not parse/execute cost. Lighthouse results below are from local runs of the same build, not estimated.
 
 | Route | Initial JS, gzip | Over shared shell |
 | --- | ---: | ---: |
-| `/` | 252.1 KB | +2.3 KB |
-| `/analytics` | 252.6 KB | +2.8 KB |
-| `/materials` | 256.6 KB | +6.8 KB |
-| `/orders/[id]/invoice` | 260.4 KB | +10.7 KB |
-| `/orders/[id]` | 267.4 KB | +17.7 KB |
-| `/orders` | 297.3 KB | +47.6 KB |
-| `/orders/new` | 311.6 KB | +61.8 KB |
+| `/` | 252.4 KB | +2.3 KB |
+| `/analytics` | 252.9 KB | +2.8 KB |
+| `/materials` | 256.9 KB | +6.8 KB |
+| `/orders/[id]/invoice` | 260.7 KB | +10.6 KB |
+| `/orders/[id]` | 267.8 KB | +17.7 KB |
+| `/orders` | 297.7 KB | +47.6 KB |
+| `/orders/new` | 331.8 KB | +81.7 KB |
 
 The shared baseline is about 250 KB gzip: React 19, the App Router runtime, the persistent shell and Radix primitives. The shell is interactive on every page, so it is a deliberate cost; hiding it behind a client-only boundary would trade a smaller first load for a layout flash on every navigation. The dashboard adds only 2.3 KB because its KPI grid, risk table and buyer list are Server Components and its charts are lazy.
 
@@ -149,9 +150,19 @@ Weight kept off the first load:
 - Tiptap: ~134 KB gzip (one on-demand chunk)
 - DOMPurify: ~14 KB gzip (loaded with the editor)
 
-### Indicative local measurements
+### Local Lighthouse run
 
-A single production-build run in Chromium on one development workstation produced: FCP **340 ms**, `/orders` table ready **1,235 ms**, `/api/orders` **183,123 bytes transferred** (**2,220,357 bytes decoded**) and **28 row elements** in the DOM. Treat these as a local sanity check, not a benchmark or a promise about field performance on low-end devices.
+Measured against `next start` on one workstation with the **desktop preset**, one pass per route. All eight reviewed routes — dashboard, orders, new PO, analytics, materials, architecture, detail and invoice — scored **100** for performance, accessibility, best practices and SEO.
+
+| Metric | Dashboard | Orders |
+| --- | ---: | ---: |
+| First Contentful Paint | 0.28 s | 0.26 s |
+| Largest Contentful Paint | 0.28 s | 0.26 s |
+| Total Blocking Time | 50 ms | 70 ms |
+| Cumulative Layout Shift | 0.005 | 0.012 |
+| Speed Index | 0.69 s | 0.54 s |
+
+TBT is a lab proxy for INP, not a field INP measurement. A separate Chromium check measured `/orders` table-ready at about 1.2 s, `/api/orders` at 183,123 bytes transferred (2,220,357 decoded) and 28 mounted row elements. Treat all of these as a local sanity check, not a benchmark or a promise about low-end devices.
 
 ## Print output
 
@@ -168,9 +179,10 @@ Verified on 16 Nov 2026:
 - `npm run build` — production build passes (28 route entries, including static order and invoice samples)
 - `npx tsc --noEmit` — clean
 - `npx eslint src` — clean
-- `npm test` — 10 Vitest tests across data builders, materials, schema rules and invoice wording
+- `npm test` — 11 Vitest tests across data builders, materials, schema rules, CSV safety and invoice wording
 - Production QA — creating a local PO, draft autosave/restore, local detail after reload, local invoice print, no console errors
 - Print QA — sample invoice is exactly two A4 pages
+- Lighthouse desktop — 100/100/100/100 on all eight reviewed routes, with no failed accessibility audits
 
 The test suite covers the deterministic order book, dashboard/analytics consistency, size allocation, materials thresholds, new-order validation and amount-in-words formatting. There is **no browser E2E or visual regression suite yet**; Playwright coverage for the table, form and print flows is the next testing step.
 
@@ -182,7 +194,7 @@ Accessibility work includes a skip link, labelled landmarks, semantic data-grid 
 - There is no database, authentication, multi-user behaviour or real mutation. Status changes and bulk actions that look destructive are labelled demo-only or disabled.
 - Browser-created POs and notes live in `localStorage` for that browser only. Clearing site storage loses them; there is no cross-device continuity.
 - The interface is desktop-first. Compact 28–32 px controls suit mouse and keyboard work but are below the 44 px touch-target recommendation. Mobile gets a slide-over nav and horizontally scrollable tables rather than a separate operator app.
-- No Lighthouse score or user number is claimed anywhere in the project.
+- No field INP, user count or synthetic benchmark is claimed. Lighthouse figures are explicitly local lab measurements.
 
 ## Getting started
 
@@ -233,6 +245,7 @@ Then import the repository at [vercel.com/new](https://vercel.com/new).
 ## Project structure
 
 ```text
+components.json              shadcn CLI config for the Radix/Tailwind primitives
 src/
   app/
     (app)/                  dashboard, orders, detail, invoice, materials,

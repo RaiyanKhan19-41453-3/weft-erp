@@ -181,7 +181,11 @@ export function sanitizeNoteHtml(html: string) {
 }
 
 export function csvEscape(value: string | number | boolean | null | undefined) {
-  const text = value == null ? "" : String(value);
+  let text = value == null ? "" : String(value);
+  // Spreadsheet apps evaluate cells beginning with these characters as formulas.
+  if (typeof value === "string" && /^\s*[=+\-@]/.test(text)) {
+    text = `'${text}`;
+  }
   if (/[",\n\r]/.test(text)) {
     return `"${text.replaceAll('"', '""')}"`;
   }

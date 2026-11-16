@@ -66,6 +66,7 @@ export function amountInWords(amount: number) {
   const dollars = Math.floor(rounded / 100);
   const cents = rounded % 100;
   const dollarText = integerWords(dollars);
-  const centText = cents ? ` and ${belowThousand(cents)} cents` : "";
+  const centNoun = cents === 1 ? "cent" : "cents";
+  const centText = cents ? ` and ${belowThousand(cents)} ${centNoun}` : "";
   return `US Dollars ${dollarText}${centText} only`;
 }

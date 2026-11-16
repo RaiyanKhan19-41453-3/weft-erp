@@ -39,6 +39,7 @@ import {
   formatMoneyFull,
   formatNumber,
   isOverdue,
+  sanitizeNoteHtml,
 } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -94,7 +95,10 @@ export function OrderDetailView({ order }: { order: OrderDetail }) {
   const [notesOpen, setNotesOpen] = React.useState(false);
   const storedNote = useOrderNotes((state) => state.notes[order.id]);
   const removeLocalOrder = useLocalOrders((state) => state.removeOrder);
-  const note = storedNote ?? order.qcNote;
+  const note = React.useMemo(
+    () => sanitizeNoteHtml(storedNote ?? order.qcNote),
+    [storedNote, order.qcNote],
+  );
   const overdue = isOverdue(order.dueDate);
   const maxSize = Math.max(...order.sizes.map((size) => size.quantity), 1);
   const activeStage = order.timeline.findIndex((stage) => stage.state === "active");

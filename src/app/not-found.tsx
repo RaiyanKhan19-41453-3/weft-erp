@@ -53,7 +53,7 @@ export default function NotFound() {
 
         <p className="mt-6 border-t border-line pt-3 text-[10px] text-faint">
           Looking for a local PO? Browser-created orders use the{" "}
-          <code className="font-mono text-[9.5px]">PO-26-L####</code> format and only exist in the
+          <code className="font-mono text-[9.5px]">PO-26-L…</code> format and only exist in the
           browser that created them.
         </p>
       </div>

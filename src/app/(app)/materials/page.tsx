@@ -110,7 +110,7 @@ export default async function MaterialsPage() {
             <p className="text-[12.5px] font-medium text-amber-900 dark:text-amber-200">
               {summary.low} SKUs are below their reorder point
             </p>
-            <p className="text-[11px] text-amber-800/80 dark:text-amber-200/60">
+            <p className="text-[11px] text-amber-900 dark:text-amber-200/90">
               {earliest.name} has {coverageWeeks(earliest).toFixed(1)} weeks of cover left —
               roughly {Math.floor(coverageWeeks(earliest) * 7)} days at current consumption.
             </p>

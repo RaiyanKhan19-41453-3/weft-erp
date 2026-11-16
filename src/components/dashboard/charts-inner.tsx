@@ -40,7 +40,11 @@ const tooltipItemStyle = {
 
 export function ThroughputChart({ data }: { data: ThroughputPoint[] }) {
   return (
-    <div className="h-[220px] w-full" aria-label="Shipped units per week compared with target">
+    <div
+      className="h-[220px] w-full"
+      role="img"
+      aria-label="Shipped units per week compared with target"
+    >
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
           <defs>

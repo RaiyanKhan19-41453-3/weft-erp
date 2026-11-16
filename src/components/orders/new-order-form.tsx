@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import axios from "axios";
 import { useRouter } from "next/navigation";
 import {
   Controller,
@@ -36,6 +37,7 @@ import {
   type OrderPriority,
 } from "@/lib/constants";
 import { newOrderSchema, type NewOrderInput } from "@/lib/validation/new-order";
+import { apiClient } from "@/lib/api/client";
 import { useLocalOrders } from "@/lib/stores/local-orders";
 import { useOrderDraft } from "@/lib/stores/order-draft";
 import { Button } from "@/components/ui/button";
@@ -171,17 +173,12 @@ export function NewOrderForm() {
 
   const onSubmit = async (values: NewOrderInput) => {
     try {
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-      const payload = (await response.json()) as {
+      const { data: payload } = await apiClient.post<{
         detail?: OrderDetail;
         error?: string;
-      };
+      }>("/orders", values);
 
-      if (!response.ok || !payload.detail) {
+      if (!payload.detail) {
         form.setError("root", {
           message:
             payload.error ??
@@ -196,10 +193,12 @@ export function NewOrderForm() {
         description: "Validated by the API and saved in this browser only.",
       });
       router.push(`/orders/${payload.detail.id}`);
-    } catch {
-      form.setError("root", {
-        message: "The order service could not be reached. Check your connection and retry.",
-      });
+    } catch (error) {
+      const message = axios.isAxiosError<{ error?: string }>(error)
+        ? error.response?.data?.error ??
+          "The order service could not be reached. Check your connection and retry."
+        : "The order service could not be reached. Check your connection and retry.";
+      form.setError("root", { message });
     }
   };
 

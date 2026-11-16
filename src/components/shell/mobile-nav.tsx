@@ -20,7 +20,7 @@ export function MobileNav() {
       </SheetTrigger>
       <SheetContent title="Weft navigation">
         <div className="flex h-14 shrink-0 items-center border-b border-sidebar-line px-4">
-          <Link href="/" onClick={() => setOpen(false)} aria-label="Weft overview">
+          <Link href="/" onClick={() => setOpen(false)}>
             <WeftWordmark />
           </Link>
         </div>

@@ -35,7 +35,11 @@ const tooltipStyle = {
 export function FactoryOutputChart({ data }: { data: AnalyticsData["factoryOutput"] }) {
   return (
     <div>
-      <div className="h-[240px] w-full" aria-label="Shipped units by factory and month">
+      <div
+        className="h-[240px] w-full"
+        role="img"
+        aria-label="Shipped units by factory and month"
+      >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 8, right: 4, left: -10, bottom: 0 }} barCategoryGap="24%">
             <CartesianGrid vertical={false} stroke="var(--color-line)" strokeDasharray="2 4" />
@@ -93,7 +97,7 @@ export function FactoryOutputChart({ data }: { data: AnalyticsData["factoryOutpu
 
 export function OnTimeTrendChart({ data }: { data: AnalyticsData["onTimeTrend"] }) {
   return (
-    <div className="h-[240px] w-full" aria-label="On-time shipment rate by month">
+    <div className="h-[240px] w-full" role="img" aria-label="On-time shipment rate by month">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 8, right: 6, left: 0, bottom: 0 }}>
           <CartesianGrid vertical={false} stroke="var(--color-line)" strokeDasharray="2 4" />

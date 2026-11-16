@@ -50,7 +50,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
     <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-4" aria-label="Primary">
       {navSections.map((section) => (
         <div key={section.label}>
-          <p className="mb-1.5 px-2 text-[9.5px] font-semibold uppercase tracking-[0.14em] text-sidebar-muted/80">
+          <p className="mb-1.5 px-2 text-[9.5px] font-semibold uppercase tracking-[0.14em] text-sidebar-muted">
             {section.label}
           </p>
           <ul className="space-y-0.5">
@@ -76,7 +76,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                     <Icon
                       className={cn(
                         "size-4 shrink-0",
-                        active ? "text-sidebar-brand" : "text-sidebar-muted/75",
+                        active ? "text-sidebar-brand" : "text-sidebar-muted",
                       )}
                       strokeWidth={1.8}
                     />
@@ -84,7 +84,10 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                     {"badge" in item && item.badge ? (
                       <Badge
                         tone="neutral"
-                        className="ml-auto border-0 bg-white/[0.06] px-1.5 text-[9px] text-sidebar-muted ring-white/10"
+                        className={cn(
+                          "ml-auto border-0 bg-white/[0.06] px-1.5 text-[9px] ring-white/10",
+                          active ? "text-sidebar-ink" : "text-sidebar-muted",
+                        )}
                       >
                         {item.badge}
                       </Badge>
@@ -128,12 +131,12 @@ export function Sidebar() {
   return (
     <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-[236px] flex-col border-r border-sidebar-line bg-sidebar lg:flex">
       <div className="flex h-14 shrink-0 items-center border-b border-sidebar-line px-4">
-        <Link href="/" aria-label="Weft overview" className="rounded-md">
+        <Link href="/" className="rounded-md">
           <WeftWordmark />
         </Link>
       </div>
       <SidebarNav />
-      <div className="flex h-9 shrink-0 items-center border-t border-sidebar-line px-4 text-[9.5px] uppercase tracking-[0.12em] text-sidebar-muted/70">
+      <div className="flex h-9 shrink-0 items-center border-t border-sidebar-line px-4 text-[9.5px] uppercase tracking-[0.12em] text-sidebar-muted">
         Apparel ERP · v1.4
       </div>
     </aside>

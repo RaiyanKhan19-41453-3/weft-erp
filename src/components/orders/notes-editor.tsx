@@ -25,7 +25,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useOrderNotes } from "@/lib/stores/notes";
-import { cn } from "@/lib/utils";
+import { cn, sanitizeNoteHtml } from "@/lib/utils";
 
 export function NotesEditorDialog({
   orderId,
@@ -43,7 +43,7 @@ export function NotesEditorDialog({
 
   const editor = useEditor({
     extensions: [StarterKit],
-    content: initialHtml,
+    content: sanitizeNoteHtml(initialHtml),
     immediatelyRender: false,
     editorProps: {
       attributes: {

@@ -162,7 +162,7 @@ export function InvoiceDocument({ order }: { order: OrderDetail }) {
                     </td>
                     <td className="border-b border-[#e6e3da] px-2.5 py-2.5 align-top font-mono text-[9.5px]">
                       {line.styleCode}
-                      <span className="mt-0.5 block text-[#8b918b]">HS 6109.10</span>
+                      <span className="mt-0.5 block text-muted">HS 6109.10</span>
                     </td>
                     <td className="border-b border-[#e6e3da] px-2.5 py-2.5 text-right align-top tabular-nums">
                       {formatNumber(line.quantity)}
@@ -209,7 +209,7 @@ export function InvoiceDocument({ order }: { order: OrderDetail }) {
               <p className="mt-1">For {SELLER.name}</p>
             </div>
           </div>
-          <div className="text-right text-[8.5px] leading-4 text-[#8b918b]">
+          <div className="text-right text-[8.5px] leading-4 text-muted">
             <p>Weft demo workspace · synthetic order data</p>
             <p>Generated 16 Nov 2026 · {invoiceNo}</p>
           </div>
@@ -305,7 +305,7 @@ export function InvoiceDocument({ order }: { order: OrderDetail }) {
                 </tfoot>
               </table>
             </div>
-            <p className="mt-1.5 text-[8.5px] leading-3.5 text-[#8b918b]">
+            <p className="mt-1.5 text-[8.5px] leading-3.5 text-muted">
               Weights are estimated at 0.42 kg per piece plus 0.85 kg per carton. Carton dimensions
               60 × 40 × 35 cm. Solid colour, solid size packing.
             </p>
@@ -362,7 +362,7 @@ export function InvoiceDocument({ order }: { order: OrderDetail }) {
             <div className="mt-3 inline-block text-left">
               <div className="h-px w-48 bg-[#9a9f98]" />
               <p className="mt-1">QC lead · {order.factory}</p>
-              <p className="text-[#8b918b]">AQL 2.5 · final inspection passed</p>
+              <p className="text-muted">AQL 2.5 · final inspection passed</p>
             </div>
           </div>
         </section>
@@ -374,7 +374,7 @@ export function InvoiceDocument({ order }: { order: OrderDetail }) {
 function DocumentField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[8px] font-semibold uppercase tracking-[0.1em] text-[#8b918b]">{label}</p>
+      <p className="text-[8px] font-semibold uppercase tracking-[0.1em] text-muted">{label}</p>
       <p className="mt-0.5 font-medium leading-4">{value}</p>
     </div>
   );
@@ -401,7 +401,7 @@ function TotalRow({
     >
       <span className={strong ? "text-[11px] font-semibold" : "text-[10px] text-[#5c635c]"}>
         {label}
-        {note ? <span className="ml-1 text-[8.5px] text-[#8b918b]">({note})</span> : null}
+        {note ? <span className="ml-1 text-[8.5px] text-muted">({note})</span> : null}
       </span>
       <span
         className={
@@ -419,7 +419,7 @@ function TotalRow({
 function SummaryBox({ label, value }: { label: string; value: string }) {
   return (
     <div className="border border-[#d8d5cb] bg-[#faf9f5] px-2.5 py-2">
-      <p className="text-[8px] uppercase tracking-[0.08em] text-[#8b918b]">{label}</p>
+      <p className="text-[8px] uppercase tracking-[0.08em] text-muted">{label}</p>
       <p className="mt-0.5 text-[11px] font-semibold tabular-nums">{value}</p>
     </div>
   );

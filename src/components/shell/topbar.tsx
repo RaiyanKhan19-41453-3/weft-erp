@@ -190,7 +190,6 @@ export function Topbar() {
             <button
               type="button"
               className="flex h-8 items-center gap-1.5 rounded-control px-1 text-left outline-none transition-colors hover:bg-sunken focus-visible:ring-2 focus-visible:ring-brand/40"
-              aria-label="Workspace menu"
             >
               <Avatar name="Demo Operator" className="size-7 bg-brand-soft text-[9px] text-brand-ink dark:bg-brand/15 dark:text-brand" />
               <span className="hidden text-[12px] font-medium md:block">Demo operator</span>

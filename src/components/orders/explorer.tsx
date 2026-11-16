@@ -401,7 +401,7 @@ export function OrdersExplorer({
       <p className="mt-2 px-1 text-[10px] leading-4 text-faint">
         {formatNumber(orders.length)} synthetic purchase orders · rows are virtualized and only
         the visible window is mounted · the filter input uses{" "}
-        <code className="rounded bg-sunken px-1 py-0.5 font-mono text-[9.5px]">useDeferredValue</code>{" "}
+        <code className="rounded bg-sunken px-1 py-0.5 font-mono text-[9.5px] text-ink">useDeferredValue</code>{" "}
         so typing stays responsive while the table catches up.
       </p>
     </>

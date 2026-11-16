@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     notes: input.notes,
     lines: input.lineItems,
   };
-  const id = `PO-26-L${String(1000 + (Date.now() % 9000))}`;
+  const id = `PO-26-L${crypto.randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase()}`;
   const order = buildLocalOrder(localInput, id);
   const detail = buildLocalDetail(order, localInput);
 
