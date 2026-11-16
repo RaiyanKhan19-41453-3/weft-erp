@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getOrderApprovals, getOrderDetail, getOrderEvents, getOrderIds } from "@/lib/data/server";
-import { getViewer } from "@/lib/auth-guards";
+import { canChangeStatus, canDecideApprovals, getViewer } from "@/lib/auth-guards";
 import type { WeftRole } from "@/lib/permissions";
 import { OrderDetailView } from "@/components/orders/order-detail-view";
 import { LocalOrderDetail } from "@/components/orders/local-order-detail";
@@ -44,8 +44,8 @@ async function OrderContent({ params }: { params: Params }) {
         order={order}
         events={events}
         approvals={approvals}
-        canDecideApprovals={viewer.role === "owner" || viewer.role === "admin"}
-        canChangeStatus={viewer.role === "owner" || viewer.role === "admin" || viewer.role === "factory"}
+        canDecideApprovals={canDecideApprovals(viewer.role)}
+        canChangeStatus={canChangeStatus(viewer.role)}
         role={viewer.role as WeftRole | "public"}
       />
     );

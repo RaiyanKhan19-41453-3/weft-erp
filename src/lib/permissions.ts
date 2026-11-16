@@ -26,7 +26,7 @@ export const roles = {
     organization: ["update"],
   }),
   merchandiser: ac.newRole({
-    order: ["create", "read", "update"],
+    order: ["create", "read", "update", "status"],
     material: ["read"],
     analytics: ["read"],
     invoice: ["read"],

@@ -11,7 +11,7 @@ export const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   cancelled: [],
 };
 
-const PRIVILEGED: WeftRole[] = ["owner", "admin"];
+const APPROVER_ROLES: WeftRole[] = ["owner", "admin"];
 
 export type TransitionCheck = { ok: true } | { ok: false; reason: string };
 
@@ -25,14 +25,14 @@ export function checkTransition(
   if (!ALLOWED_TRANSITIONS[from].includes(to)) {
     return { ok: false, reason: `Cannot move from ${from} to ${to}.` };
   }
-  if (to === "cancelled" && !PRIVILEGED.includes(role)) {
+  if (to === "cancelled" && !APPROVER_ROLES.includes(role)) {
     return { ok: false, reason: "Only owners and admins can cancel an order." };
   }
   return { ok: true };
 }
 
 export function requiresApproval(to: OrderStatus, role: WeftRole) {
-  return to === "shipped" && !PRIVILEGED.includes(role);
+  return to === "shipped" && !APPROVER_ROLES.includes(role);
 }
 
 export function nextStatuses(from: OrderStatus, role: WeftRole) {

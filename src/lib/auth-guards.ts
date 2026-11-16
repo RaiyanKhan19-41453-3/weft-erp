@@ -17,7 +17,7 @@ export type Viewer = {
 const ROLE_PERMISSIONS: Record<WeftRole | "public", string[]> = {
   owner: ["order:create", "order:read", "order:update", "order:status", "material:read", "material:update", "analytics:read", "invoice:read", "organization:update"],
   admin: ["order:create", "order:read", "order:update", "order:status", "material:read", "material:update", "analytics:read", "invoice:read", "organization:update"],
-  merchandiser: ["order:create", "order:read", "order:update", "material:read", "analytics:read", "invoice:read"],
+  merchandiser: ["order:create", "order:read", "order:update", "order:status", "material:read", "analytics:read", "invoice:read"],
   factory: ["order:read", "order:status", "material:read", "material:update", "analytics:read", "invoice:read"],
   viewer: ["order:read", "material:read", "analytics:read", "invoice:read"],
   public: ["order:read", "material:read", "analytics:read", "invoice:read"],
@@ -39,7 +39,14 @@ export async function getViewer(): Promise<Viewer> {
     };
   }
 
-  const orgId = session.session.activeOrganizationId ?? DEMO_ORG_ID;
+  const [membershipById] = await db
+    .select({ role: member.role, organizationId: member.organizationId })
+    .from(member)
+    .where(eq(member.userId, session.user.id))
+    .orderBy(member.createdAt)
+    .limit(1);
+
+  const orgId = session.session.activeOrganizationId ?? membershipById?.organizationId ?? DEMO_ORG_ID;
   const [membership] = await db
     .select({ role: member.role })
     .from(member)
@@ -59,4 +66,12 @@ export async function requireViewer() {
   const viewer = await getViewer();
   if (!viewer.authenticated) return null;
   return viewer;
+}
+
+export function canChangeStatus(role: Viewer["role"]) {
+  return role === "owner" || role === "admin" || role === "merchandiser" || role === "factory";
+}
+
+export function canDecideApprovals(role: Viewer["role"]) {
+  return role === "owner" || role === "admin";
 }
