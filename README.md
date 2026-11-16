@@ -4,7 +4,7 @@
 
 Weft is a portfolio project, not a landing page. It models the unglamorous parts of an ERP front end: a 5,000-row virtualized order book, typed multi-step forms, server/client boundaries, explicit caching, print-ready commercial documents and honest browser-local persistence.
 
-> **Live demo:** _pending Vercel deployment — see [Deploying](#deploying)._ Replace this line with the production URL after the first deploy.
+> **Live demo:** [https://weft-erp.vercel.app](https://weft-erp.vercel.app)
 >
 > **Architecture case study:** in-app at `/architecture` · **Sample invoice:** [two-page A4 PDF](docs/weft-sample-invoice.pdf)
 
@@ -16,7 +16,7 @@ Data-heavy business software is mostly judged in the details. A marketing page c
 
 Apparel manufacturing supplied the constraints: purchase orders, style/colour/size matrices, production stages, material coverage, factory capacity, buyer scorecards and shipping paperwork. Every screen has a job because the domain needs it, not because a component library had a demo.
 
-The entire workspace runs on Vercel's free tier with no paid services. It works without a database, and can optionally use a free Neon Postgres database for real persistence — see [Database setup](docs/DB_SETUP.md).
+The entire workspace runs on Vercel's free tier with no paid services. It is connected to a free Neon Postgres database for real persistence, while still falling back to deterministic local data when `DATABASE_URL` is absent — see [Database setup](docs/DB_SETUP.md).
 
 ## Screens
 

@@ -87,6 +87,17 @@ npm run db:push
 
 Generated SQL migrations live in `drizzle/`.
 
+## Troubleshooting
+
+If Neon rejects the connection string as an invalid URL **only on Vercel**, it was probably stored with literal quote characters. Re-add the dotenv-parsed value:
+
+```bash
+node -e "require('dotenv').config({path:'.env.local'});process.stdout.write(process.env.DATABASE_URL)" \
+  | vercel env add DATABASE_URL --environment production,preview,development --force --sensitive
+```
+
+`dotenv` strips surrounding quotes from `.env.local`; piping the raw line does not.
+
 ## Do not commit
 
 Never commit:
