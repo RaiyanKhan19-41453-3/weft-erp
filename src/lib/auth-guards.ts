@@ -1,8 +1,10 @@
+import { createHash } from "node:crypto";
 import { headers } from "next/headers";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { auth } from "./auth";
 import { db } from "./db";
 import { member } from "./db/auth-schema";
+import { apiKeys } from "./db/schema";
 import { DEMO_ORG_ID } from "./constants";
 import type { WeftRole } from "./permissions";
 
@@ -74,4 +76,23 @@ export function canChangeStatus(role: Viewer["role"]) {
 
 export function canDecideApprovals(role: Viewer["role"]) {
   return role === "owner" || role === "admin";
+}
+
+export async function resolveApiViewer(request: Request): Promise<Viewer | null> {
+  const key = request.headers.get("x-api-key");
+  if (!key || !process.env.DATABASE_URL) return null;
+  const hashedKey = createHash("sha256").update(key).digest("hex");
+  const [row] = await db
+    .select()
+    .from(apiKeys)
+    .where(and(eq(apiKeys.hashedKey, hashedKey), isNull(apiKeys.revokedAt)))
+    .limit(1);
+  if (!row) return null;
+  return {
+    authenticated: true,
+    userId: row.id,
+    email: `api-key:${row.prefix}`,
+    role: "owner",
+    orgId: row.organizationId,
+  };
 }

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getOrderDetail, getOrderIds } from "@/lib/data/server";
 import { getViewer } from "@/lib/auth-guards";
+import { hasDatabase } from "@/lib/db";
+import { getInvoiceSnapshot } from "@/lib/invoices";
 import { InvoiceDocument } from "@/components/orders/invoice-document";
 import { LocalInvoice } from "@/components/orders/local-invoice";
 import { PrintToolbar } from "@/components/orders/print-toolbar";
@@ -39,10 +41,19 @@ async function InvoiceContent({ params }: { params: Params }) {
     return <LocalInvoice id={id} />;
   }
 
+  let snapshot: Awaited<ReturnType<typeof getInvoiceSnapshot>> = null;
+  if (hasDatabase()) {
+    try {
+      snapshot = await getInvoiceSnapshot(id, viewer.orgId);
+    } catch {
+      snapshot = null;
+    }
+  }
+
   return (
     <>
       <PrintToolbar orderId={order.id} invoiceNo={order.id.replace("PO-", "INV-")} />
-      <InvoiceDocument order={order} />
+      <InvoiceDocument order={order} invoiceVersion={snapshot?.version} />
     </>
   );
 }

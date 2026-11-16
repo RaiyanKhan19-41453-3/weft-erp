@@ -89,18 +89,18 @@ This file tracks the work from a portfolio demo toward an enterprise-grade multi
 
 ---
 
-## Milestone 5 — Documents and integrations `[ ]`
+## Milestone 5 — Documents and integrations `[~]`
 
 **Goal:** let other systems exchange data with Weft.
 
-- [ ] GS1/GTIN validation and compliant SSCC labels
-- [ ] Immutable invoice versions with history
-- [ ] Purchase order and packing list PDFs
-- [ ] OpenAPI spec for the REST API
-- [ ] API keys or OAuth for machine clients
-- [ ] Webhooks: `order.created`, `order.status_changed`, `material.low_stock`
-- [ ] CSV/XLSX import with validation preview
-- [ ] Idempotency keys and replay protection
+- [x] GS1/GTIN validation and compliant SSCC labels
+- [x] Immutable invoice versions with history
+- [x] Purchase order and packing list PDFs
+- [x] OpenAPI spec for the REST API
+- [x] API keys for machine clients
+- [x] Webhooks: `order.created`, `order.status_changed` (`material.low_stock` defined but not emitted)
+- [x] CSV import with validation preview — XLSX still deferred
+- [x] Idempotency keys and replay protection
 
 ---
 

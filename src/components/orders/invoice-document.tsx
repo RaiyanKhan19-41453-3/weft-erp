@@ -1,5 +1,6 @@
 import { WeftMark } from "@/components/brand";
 import { Barcode } from "@/components/orders/barcode";
+import { ssccForOrder } from "@/lib/gtin";
 import type { OrderDetail } from "@/lib/constants";
 import { formatDate, formatMoneyFull, formatNumber } from "@/lib/utils";
 import { amountInWords } from "@/lib/words";
@@ -34,8 +35,15 @@ function buildPacking(order: OrderDetail) {
   };
 }
 
-export function InvoiceDocument({ order }: { order: OrderDetail }) {
+export function InvoiceDocument({
+  order,
+  invoiceVersion,
+}: {
+  order: OrderDetail;
+  invoiceVersion?: number;
+}) {
   const invoiceNo = order.id.replace("PO-", "INV-");
+  const sscc = ssccForOrder(order.id);
   const packing = buildPacking(order);
   const invoiceDate = order.shipping.etd;
 
@@ -76,6 +84,12 @@ export function InvoiceDocument({ order }: { order: OrderDetail }) {
               <dd className="font-mono font-medium">{order.id}</dd>
               <dt className="text-[#6b726b]">Currency</dt>
               <dd className="font-medium">USD</dd>
+              {invoiceVersion ? (
+                <>
+                  <dt className="text-[#6b726b]">Version</dt>
+                  <dd className="font-medium">{invoiceVersion} · immutable</dd>
+                </>
+              ) : null}
               <dt className="text-[#6b726b]">Page</dt>
               <dd className="font-medium">1 of 2</dd>
             </dl>
@@ -331,7 +345,10 @@ export function InvoiceDocument({ order }: { order: OrderDetail }) {
                 Made in Bangladesh
               </p>
               <div className="mt-3 border-t border-[#d8d5cb] pt-2">
-                <Barcode value={order.id} moduleWidth={1.35} />
+                <p className="mb-1 font-mono text-[8px] tracking-[0.08em] text-[#6b726b]">
+                  SSCC {sscc}
+                </p>
+                <Barcode value={sscc} moduleWidth={1.15} symbology="code128" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 text-[10px]">

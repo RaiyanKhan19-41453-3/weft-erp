@@ -4,13 +4,14 @@ export function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const value = (searchParams.get("value") ?? "").toUpperCase();
   const scale = Math.min(4, Math.max(1, Number(searchParams.get("scale")) || 2));
+  const bcid = searchParams.get("bcid") === "code128" ? "code128" : "code39";
 
-  if (!/^[0-9A-Z\-.* $]{1,32}$/.test(value)) {
+  if (bcid === "code128" ? !/^\d{1,32}$/.test(value) : !/^[0-9A-Z\-.* $]{1,32}$/.test(value)) {
     return new Response("Invalid barcode value", { status: 400 });
   }
 
   const svg = bwipjs.toSVG({
-    bcid: "code39",
+    bcid,
     text: value,
     scale,
     height: 12,

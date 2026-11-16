@@ -1,12 +1,19 @@
 import { revalidateTag } from "next/cache";
+import { and, eq } from "drizzle-orm";
 import { bomForStyle } from "@/lib/bom";
 import { getViewer, hasPermission } from "@/lib/auth-guards";
 import { buildLocalDetail, buildLocalOrder, type LocalOrderInput } from "@/lib/data/orders";
 import { getOrders } from "@/lib/data/server";
 import { getDb, hasDatabase } from "@/lib/db";
 import { orderToRow } from "@/lib/db/mappers";
-import { materialReservations, orderDetails, purchaseOrders } from "@/lib/db/schema";
+import {
+  idempotencyKeys,
+  materialReservations,
+  orderDetails,
+  purchaseOrders,
+} from "@/lib/db/schema";
 import { newOrderSchema } from "@/lib/validation/new-order";
+import { dispatchWebhook } from "@/lib/webhooks";
 
 function escapeHtml(value: string) {
   return value
@@ -41,6 +48,25 @@ export async function POST(request: Request) {
     }
   }
 
+  const idempotencyKey = request.headers.get("Idempotency-Key")?.slice(0, 200);
+  if (hasDatabase() && viewer.authenticated && idempotencyKey) {
+    const [existing] = await getDb()
+      .select({ response: idempotencyKeys.response })
+      .from(idempotencyKeys)
+      .where(
+        and(
+          eq(idempotencyKeys.organizationId, viewer.orgId),
+          eq(idempotencyKeys.key, idempotencyKey),
+          eq(idempotencyKeys.endpoint, "/api/orders"),
+        ),
+      )
+      .limit(1);
+    if (existing) {
+      const stored = existing.response as { status: number; body: unknown };
+      return Response.json(stored.body, { status: stored.status });
+    }
+  }
+
   let payload: unknown;
   try {
     payload = await request.json();
@@ -58,6 +84,20 @@ export async function POST(request: Request) {
       { status: 422 },
     );
   }
+
+  const remember = async (status: number, body: unknown) => {
+    if (!hasDatabase() || !viewer.authenticated || !idempotencyKey) return;
+    await getDb()
+      .insert(idempotencyKeys)
+      .values({
+        organizationId: viewer.orgId,
+        key: idempotencyKey,
+        endpoint: "/api/orders",
+        response: { status, body },
+        createdAt: new Date().toISOString(),
+      })
+      .onConflictDoNothing();
+  };
 
   const input = parsed.data;
   const localInput: LocalOrderInput = {
@@ -123,17 +163,14 @@ export async function POST(request: Request) {
       revalidateTag(`order-${id}`, "max");
       revalidateTag(`materials-${viewer.orgId}`, { expire: 0 });
 
-      return Response.json(
-        {
-          order: persistedOrder,
-          detail: persistedDetail,
-          meta: {
-            persisted: true,
-            message: "Stored in the database.",
-          },
-        },
-        { status: 201 },
-      );
+      void dispatchWebhook(viewer.orgId, "order.created", persistedOrder);
+      const body = {
+        order: persistedOrder,
+        detail: persistedDetail,
+        meta: { persisted: true, message: "Stored in the database." },
+      };
+      await remember(201, body);
+      return Response.json(body, { status: 201 });
     } catch (error) {
       console.error("Database write failed.", error);
       return Response.json(

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Database, Plus } from "lucide-react";
+import { Database, FileUp, Plus } from "lucide-react";
 import { BUYERS, ORDER_STATUSES, DEMO_TODAY_LABEL, type OrderStatus } from "@/lib/constants";
 import { PageHeader } from "@/components/page-header";
 import { OrdersExplorer } from "@/components/orders/explorer";
@@ -34,6 +34,12 @@ export default function OrdersPage({ searchParams }: { searchParams: SearchParam
         description="Every PO across four production units. Filter without waiting, sort any column, and open a PO for the full production and shipping record."
         actions={
           <>
+            <Button asChild variant="outline">
+              <Link href="/orders/import">
+                <FileUp />
+                Import CSV
+              </Link>
+            </Button>
             <Button asChild variant="outline">
               <Link href="/orders/server">
                 <Database />

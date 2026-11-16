@@ -642,9 +642,9 @@ const virtualizer = useVirtualizer({
               />
             </div>
             <Callout tone="warning" icon={<CircleAlert className="size-4" />}>
-              The Code 39 SVG is generated server-side by <Code>bwip-js</Code> and is scannable. It
-              is not a GS1/GTIN shipping label — a compliant label would still need GS1 validation
-              and fixed symbology rules.
+              The PO barcode is a server-generated Code 39 SVG. The carton label adds a deterministic
+              SSCC-18 with a validated GS1 check digit, rendered as Code 128. It is a demo label,
+              not a certified carrier-compliant shipping label.
               The invoice is explicitly marked as synthetic and is not a negotiable document.
             </Callout>
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -680,6 +680,7 @@ const virtualizer = useVirtualizer({
                 ["Tenant boundaries", "Every read and write is scoped by organization_id and checked against a role."],
                 ["Governed workflow", "Status transitions are validated, approval-gated and recorded with a diff."],
                 ["MRP flow", "BOM reservations, goods receipts and coverage are derived from the same order records."],
+                ["Integration surface", "OpenAPI, API keys, signed webhooks, idempotent writes and immutable invoice versions."],
               ].map(([title, body]) => (
                 <div key={title} className="rounded-lg border border-line bg-surface px-3.5 py-3">
                   <p className="flex items-center gap-1.5 text-[11px] font-semibold">

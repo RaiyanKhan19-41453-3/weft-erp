@@ -6,6 +6,7 @@ import {
   jsonb,
   numeric,
   pgTable,
+  primaryKey,
   text,
 } from "drizzle-orm/pg-core";
 import type { Material } from "@/lib/data/materials";
@@ -144,6 +145,63 @@ export const goodsReceipts = pgTable(
     receivedAt: text("received_at").notNull(),
   },
   (table) => [index("goods_receipts_sku_idx").on(table.organizationId, table.materialSku)],
+);
+
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id").notNull().default(DEMO_ORG_ID),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => purchaseOrders.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    hash: text("hash").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("invoices_order_idx").on(table.organizationId, table.orderId)],
+);
+
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id").notNull(),
+    name: text("name").notNull(),
+    prefix: text("prefix").notNull(),
+    hashedKey: text("hashed_key").notNull(),
+    scopes: text("scopes").notNull().default("orders:read"),
+    createdAt: text("created_at").notNull(),
+    lastUsedAt: text("last_used_at"),
+    revokedAt: text("revoked_at"),
+  },
+  (table) => [index("api_keys_org_idx").on(table.organizationId)],
+);
+
+export const webhooks = pgTable(
+  "webhooks",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id").notNull(),
+    url: text("url").notNull(),
+    secret: text("secret").notNull(),
+    events: text("events").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("webhooks_org_idx").on(table.organizationId)],
+);
+
+export const idempotencyKeys = pgTable(
+  "idempotency_keys",
+  {
+    organizationId: text("organization_id").notNull(),
+    key: text("key").notNull(),
+    endpoint: text("endpoint").notNull(),
+    response: jsonb("response").notNull(),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.organizationId, table.key, table.endpoint] })],
 );
 
 export const materials = pgTable("materials", {

@@ -45,9 +45,10 @@ The entire workspace runs on Vercel's free tier with no paid services. It is con
 | `/` | Server-rendered KPI grid, 12-week throughput chart, shipment-risk queue, buyer concentration and a five-SKU low-stock callout. |
 | `/orders` | 5,000 POs in a TanStack Table + Virtual grid. Sort, global search, stage/buyer/risk filters, column visibility, row selection, density preference, URL-addressable filters and CSV export. |
 | `/orders/server` | Server-driven TanStack Table in manual mode: Postgres paging, sorting, stage/factory filters and full-text search with only 50 rows fetched at a time. |
+| `/orders/import` | CSV batch validation preview using the shared Zod schema before any write. |
 | `/orders/new` | Three-step React Hook Form wizard with a shared Zod schema, per-step validation, API submission and a recoverable Zustand draft. |
 | `/orders/[id]` | Order summary, size allocation, line items, exploded material demand, landed cost, production timeline, governed status transitions with approvals and audit diff, lazy Tiptap notes and shipment/buyer rail. |
-| `/orders/[id]/invoice` | Two-page A4 commercial invoice and packing list with totals, amount in words, carton allocation and a generated Code 39 barcode. |
+| `/orders/[id]/invoice` | Two-page A4 commercial invoice and packing list with totals, amount in words, carton allocation, a Code 39 PO barcode and a GS1 SSCC Code 128 carton label. |
 | `/materials` | Twelve fabric/trim SKUs with BOM-based reservations, goods-in receipts, live coverage, reorder states, inbound supply and suggested buys. |
 | `/analytics` | Factory output, on-time trend, capacity utilisation (Unit 04 intentionally over capacity), defect causes, buyer scorecards and CSV export. |
 | `/architecture` | The engineering case study: RSC boundaries, cache design, grid tradeoffs, measured bundles, print strategy, accessibility and what was deliberately left out. |
@@ -112,6 +113,12 @@ The dashboard refreshes hourly; the order book and detail records are cached dai
 **State ownership.** SWR owns the read path, Axios owns the validated POST mutation, and Zustand owns drafts, browser-created POs, edited notes and table density with `skipHydration` and explicit rehydration flags to avoid SSR mismatches. Filters live in the URL so a copied queue link restores the view.
 
 **Persistence modes.** With no `DATABASE_URL`, the API validates submissions and returns the created record, but writes it to `localStorage` with `persisted: false`. When Neon is configured, signed-in users write into their organization; the API returns `persisted: true` and revalidates tenant cache tags. Public visitors get a read-only demo scoped to the seeded demo organization. Drafts, table density and theme stay in `localStorage` either way. Setup is documented in [`docs/DB_SETUP.md`](docs/DB_SETUP.md).
+
+## Documents and integrations
+
+`/api/openapi` publishes an OpenAPI 3.1 description of the order, query, status, invoice and receipt endpoints. Machine clients can create a scoped API key at `POST /api/settings/api-keys` and authenticate against `/api/orders/query` with `x-api-key`. Webhooks registered at `POST /api/settings/webhooks` receive HMAC-signed `order.created` and `order.status_changed` events. `POST /api/orders` accepts an `Idempotency-Key` header so retries return the original response.
+
+Invoices are immutable: `POST /api/orders/[id]/invoices` stores a SHA-256-hashed snapshot with an incrementing version. `GET /api/orders/[id]/pdf` returns a two-page PDF commercial invoice and packing list. The packing list includes a deterministic SSCC-18 validated with the GS1 check-digit algorithm and rendered as Code 128. CSV batches can be previewed at `/orders/import` before any write. XLSX import is not implemented yet.
 
 ## Inventory and MRP
 
@@ -200,11 +207,11 @@ Verified on 16 Nov 2026:
 - `npm run build` — production build passes (28 route entries, including static order and invoice samples)
 - `npx tsc --noEmit` — clean
 - `npx eslint src` — clean
-- `npm test` — 17 Vitest tests across data builders, BOM explosion, materials, schema rules, workflow transitions, CSV safety, DB mappers and invoice wording
+- `npm test` — 22 Vitest tests across data builders, BOM explosion, GS1 identifiers, CSV import, materials, schema rules, workflow transitions, DB mappers and invoice wording
 - Production QA — creating a local PO, draft autosave/restore, local detail after reload, local invoice print, no console errors
 - Print QA — sample invoice is exactly two A4 pages
 - Lighthouse desktop — accessibility, best practices and SEO 100 on all eight routes; performance 95–100 after tenant-aware server reads, with no failed accessibility audits
-- Playwright — 10 end-to-end tests covering dashboard, command palette, Web Vitals panel, the 5,000-row explorer, PO draft/create/print, materials→PO prefill, auth, tenant isolation, workflow transitions, the server query and material stock flow
+- Playwright — 12 end-to-end tests covering dashboard, command palette, Web Vitals panel, the 5,000-row explorer, PO draft/create/print, materials→PO prefill, auth, tenant isolation, workflow transitions, the server query, material stock flow, OpenAPI, invoice versions, PDF, import preview, idempotency and API keys
 - Browser Web Vitals — `web-vitals` reports LCP, INP, CLS, FCP and TTFB into a case-study panel using locally stored values only
 
 The Vitest suite covers the deterministic order book, dashboard/analytics consistency, size allocation, materials thresholds, new-order validation, CSV safety, DB mappers and amount-in-words formatting. Playwright covers the critical UI flows on every CI run. Visual regression and field INP collection are still out of scope.

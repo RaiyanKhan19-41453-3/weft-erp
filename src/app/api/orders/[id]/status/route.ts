@@ -7,6 +7,7 @@ import { getDb, hasDatabase } from "@/lib/db";
 import { orderApprovals, purchaseOrders } from "@/lib/db/schema";
 import { applyTransition } from "@/lib/workflow-db";
 import { checkTransition, requiresApproval } from "@/lib/workflow";
+import { dispatchWebhook } from "@/lib/webhooks";
 import type { WeftRole } from "@/lib/permissions";
 
 const statusSchema = z.object({
@@ -109,5 +110,7 @@ export async function POST(request: Request, { params }: Context) {
   if (!result.ok) {
     return Response.json({ error: result.reason }, { status: result.status ?? 422 });
   }
+
+  void dispatchWebhook(viewer.orgId, "order.status_changed", result.order);
   return Response.json({ order: result.order });
 }

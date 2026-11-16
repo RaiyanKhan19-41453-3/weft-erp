@@ -8,12 +8,14 @@ export function Barcode({
   value,
   className,
   moduleWidth = 2,
+  symbology = "code39",
 }: {
   value: string;
   className?: string;
   moduleWidth?: number;
+  symbology?: "code39" | "code128";
 }) {
-  const src = `/api/barcode?value=${encodeURIComponent(value)}&scale=${Math.max(1, Math.round(moduleWidth))}`;
+  const src = `/api/barcode?value=${encodeURIComponent(value)}&scale=${Math.max(1, Math.round(moduleWidth))}&bcid=${symbology}`;
   return (
     <div className={cn("inline-flex flex-col items-start gap-1", className)}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
