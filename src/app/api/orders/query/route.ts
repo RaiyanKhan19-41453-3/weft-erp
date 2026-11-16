@@ -2,6 +2,7 @@ import { and, asc, desc, eq, ilike, sql } from "drizzle-orm";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/constants";
 import { getViewer, resolveApiViewer } from "@/lib/auth-guards";
 import { getDb, hasDatabase } from "@/lib/db";
+import { allowRequest } from "@/lib/rate-limit";
 import { rowToOrder } from "@/lib/db/mappers";
 import { purchaseOrders } from "@/lib/db/schema";
 
@@ -16,6 +17,9 @@ const SORTABLE = {
 } as const;
 
 export async function GET(request: Request) {
+  if (!(await allowRequest(request, "orders-query", 120))) {
+    return Response.json({ error: "Too many requests." }, { status: 429 });
+  }
   const sessionViewer = await getViewer();
   const viewer = sessionViewer.authenticated ? sessionViewer : await resolveApiViewer(request);
   if (!viewer) return Response.json({ error: "Sign in or provide an API key." }, { status: 401 });

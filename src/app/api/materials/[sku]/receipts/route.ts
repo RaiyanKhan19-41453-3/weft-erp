@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getViewer, hasPermission } from "@/lib/auth-guards";
 import { getDb, hasDatabase } from "@/lib/db";
 import { goodsReceipts } from "@/lib/db/schema";
+import { hasForbiddenOrigin } from "@/lib/csrf";
 
 const receiptSchema = z.object({
   quantity: z.number().positive().max(1_000_000),
@@ -13,6 +14,9 @@ const receiptSchema = z.object({
 type Context = { params: Promise<{ sku: string }> };
 
 export async function POST(request: Request, { params }: Context) {
+  if (hasForbiddenOrigin(request)) {
+    return Response.json({ error: "Invalid origin." }, { status: 403 });
+  }
   const viewer = await getViewer();
   if (!viewer.authenticated) {
     return Response.json({ error: "Sign in required." }, { status: 401 });

@@ -6,6 +6,7 @@ test("order explorer filters 5,000 rows without a round trip", async ({ page }) 
 
   await page.goto("/orders");
   const count = page.getByTestId("result-count");
+  await expect(count).toBeVisible();
   await expect(count).not.toHaveText("");
   const initial = (await count.textContent())?.trim() ?? "";
   expect(Number(initial.replaceAll(",", ""))).toBeGreaterThanOrEqual(5000);

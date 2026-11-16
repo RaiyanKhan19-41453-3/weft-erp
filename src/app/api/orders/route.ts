@@ -1,3 +1,4 @@
+import { metric } from "@vercel/functions";
 import { revalidateTag } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { bomForStyle } from "@/lib/bom";
@@ -14,6 +15,8 @@ import {
 } from "@/lib/db/schema";
 import { newOrderSchema } from "@/lib/validation/new-order";
 import { dispatchWebhook } from "@/lib/webhooks";
+import { log, requestId } from "@/lib/log";
+import { hasForbiddenOrigin } from "@/lib/csrf";
 
 function escapeHtml(value: string) {
   return value
@@ -38,6 +41,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (hasForbiddenOrigin(request)) {
+    return Response.json({ error: "Invalid origin." }, { status: 403 });
+  }
   const viewer = await getViewer();
   if (hasDatabase()) {
     if (!viewer.authenticated) {
@@ -170,6 +176,12 @@ export async function POST(request: Request) {
         meta: { persisted: true, message: "Stored in the database." },
       };
       await remember(201, body);
+      metric("orders.created", 1, { outcome: "success", persisted: "true" });
+      log("info", "order_created", {
+        requestId: requestId(request),
+        tenantId: viewer.orgId,
+        orderId: persistedOrder.id,
+      });
       return Response.json(body, { status: 201 });
     } catch (error) {
       console.error("Database write failed.", error);

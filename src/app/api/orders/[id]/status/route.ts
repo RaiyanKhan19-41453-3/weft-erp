@@ -1,3 +1,4 @@
+import { metric } from "@vercel/functions";
 import { revalidateTag } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -8,6 +9,8 @@ import { orderApprovals, purchaseOrders } from "@/lib/db/schema";
 import { applyTransition } from "@/lib/workflow-db";
 import { checkTransition, requiresApproval } from "@/lib/workflow";
 import { dispatchWebhook } from "@/lib/webhooks";
+import { log, requestId } from "@/lib/log";
+import { hasForbiddenOrigin } from "@/lib/csrf";
 import type { WeftRole } from "@/lib/permissions";
 
 const statusSchema = z.object({
@@ -18,6 +21,9 @@ const statusSchema = z.object({
 type Context = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: Context) {
+  if (hasForbiddenOrigin(request)) {
+    return Response.json({ error: "Invalid origin." }, { status: 403 });
+  }
   const viewer = await getViewer();
   if (!viewer.authenticated) {
     return Response.json({ error: "Sign in required." }, { status: 401 });
@@ -112,5 +118,13 @@ export async function POST(request: Request, { params }: Context) {
   }
 
   void dispatchWebhook(viewer.orgId, "order.status_changed", result.order);
+  metric("orders.status_changed", 1, { outcome: "success", to: parsed.data.status });
+  log("info", "order_status_changed", {
+    requestId: requestId(request),
+    tenantId: viewer.orgId,
+    orderId: id,
+    from: current.status,
+    to: parsed.data.status,
+  });
   return Response.json({ order: result.order });
 }

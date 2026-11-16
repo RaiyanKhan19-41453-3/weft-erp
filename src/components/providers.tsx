@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LocalDataHydrator } from "@/components/local-data-hydrator";
+import { ErrorReporter } from "@/components/error-reporter";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -16,6 +17,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <TooltipProvider>
         <LocalDataHydrator />
+        <ErrorReporter />
         {children}
         <Toaster
           position="bottom-right"

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/order-reminders.ts": {
+      "experimentalTriggers": [{ "type": "schedule/v1beta" }]
+    }
+  },
+  "schedules": {
+    "order-reminders": {
+      "schedule": "0 9 * * *",
+      "function": "api/order-reminders"
+    }
+  }
+}

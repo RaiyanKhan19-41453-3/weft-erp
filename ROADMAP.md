@@ -104,19 +104,19 @@ This file tracks the work from a portfolio demo toward an enterprise-grade multi
 
 ---
 
-## Milestone 6 — Operational excellence `[ ]`
+## Milestone 6 — Operational excellence `[~]`
 
 **Goal:** debug and operate the app without guessing.
 
-- [ ] Structured logs with request and tenant IDs
-- [ ] OpenTelemetry/Vercel Tracing
-- [ ] Error tracking and custom metrics
-- [ ] Uptime checks and synthetic journeys
-- [ ] Rate limiting and shared Redis storage
-- [ ] CSP, CSRF and dependency scanning in CI
-- [ ] Scheduled reminders for stale/at-risk orders
-- [ ] Runbooks, ADRs and API reference
-- [ ] Accessibility audit against WCAG 2.2 AA
+- [x] Structured logs with request and tenant IDs
+- [x] OpenTelemetry/Vercel Tracing
+- [x] Error tracking and custom metrics
+- [x] Uptime checks and synthetic journeys
+- [x] Shared rate limiting — Neon-backed counters (Redis still deferred)
+- [x] CSP, CSRF and dependency scanning in CI
+- [x] Scheduled reminders for stale/at-risk orders
+- [x] Runbooks, ADRs and API reference
+- [x] Accessibility audit checklist against WCAG 2.2 AA — screen-reader pass still deferred
 
 ---
 

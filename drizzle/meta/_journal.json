@@ -50,6 +50,13 @@
       "when": 1794850878846,
       "tag": "0006_living_meggan",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794854841437,
+      "tag": "0007_massive_greymalkin",
+      "breakpoints": true
     }
   ]
 }

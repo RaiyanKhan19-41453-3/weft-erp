@@ -114,6 +114,12 @@ The dashboard refreshes hourly; the order book and detail records are cached dai
 
 **Persistence modes.** With no `DATABASE_URL`, the API validates submissions and returns the created record, but writes it to `localStorage` with `persisted: false`. When Neon is configured, signed-in users write into their organization; the API returns `persisted: true` and revalidates tenant cache tags. Public visitors get a read-only demo scoped to the seeded demo organization. Drafts, table density and theme stay in `localStorage` either way. Setup is documented in [`docs/DB_SETUP.md`](docs/DB_SETUP.md).
 
+## Operations
+
+Server routes emit structured JSON logs with request and tenant IDs; `instrumentation.ts` registers OpenTelemetry for Vercel Tracing. Client errors are reported to `/api/errors`, and `metric()` emits `orders.created` and `orders.status_changed` samples. A daily private Vercel Schedule runs `api/order-reminders.ts`. GitHub Actions checks production routes every 30 minutes and runs `npm audit --omit=dev --audit-level=high` on every push. Responses include CSP, frame, referrer and permissions headers; mutating APIs check same-origin. Shared rate-limit counters live in Neon's `rate_limit_events` table.
+
+Runbooks and architecture decisions live in [`docs/RUNBOOK.md`](docs/RUNBOOK.md), [`docs/API.md`](docs/API.md), [`docs/ACCESSIBILITY.md`](docs/ACCESSIBILITY.md) and [`docs/adr/`](docs/adr/).
+
 ## Documents and integrations
 
 `/api/openapi` publishes an OpenAPI 3.1 description of the order, query, status, invoice and receipt endpoints. Machine clients can create a scoped API key at `POST /api/settings/api-keys` and authenticate against `/api/orders/query` with `x-api-key`. Webhooks registered at `POST /api/settings/webhooks` receive HMAC-signed `order.created` and `order.status_changed` events. `POST /api/orders` accepts an `Idempotency-Key` header so retries return the original response.

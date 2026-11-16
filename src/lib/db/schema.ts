@@ -163,6 +163,16 @@ export const invoices = pgTable(
   (table) => [index("invoices_order_idx").on(table.organizationId, table.orderId)],
 );
 
+export const rateLimitEvents = pgTable(
+  "rate_limit_events",
+  {
+    key: text("key").notNull(),
+    windowStart: text("window_start").notNull(),
+    count: integer("count").notNull().default(1),
+  },
+  (table) => [primaryKey({ columns: [table.key, table.windowStart] })],
+);
+
 export const apiKeys = pgTable(
   "api_keys",
   {
