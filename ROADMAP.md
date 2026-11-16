@@ -120,7 +120,7 @@ This file tracks the work from a portfolio demo toward an enterprise-grade multi
 
 ---
 
-## Milestone 7 — Commercial layer `[~]`
+## Milestone 7 — Commercial layer `[~]` — `1d3e94a`
 
 **Goal:** a second organization can onboard and pay without manual intervention.
 
