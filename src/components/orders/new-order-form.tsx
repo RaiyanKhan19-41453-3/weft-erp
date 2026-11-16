@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import axios from "axios";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Controller,
   useFieldArray,
@@ -81,8 +81,33 @@ const DEFAULT_VALUES: NewOrderInput = {
 
 type StepOneFields = "buyerName" | "factory" | "priority" | "dueDate" | "incoterm";
 
+function readPrefill(params: URLSearchParams): NewOrderInput {
+  const quantity = Number(params.get("quantity"));
+  const unitPrice = Number(params.get("unitPrice"));
+  const candidate = {
+    ...DEFAULT_VALUES,
+    buyerName: params.get("buyer") ?? DEFAULT_VALUES.buyerName,
+    factory: params.get("factory") ?? DEFAULT_VALUES.factory,
+    dueDate: params.get("dueDate") ?? DEFAULT_VALUES.dueDate,
+    notes: params.get("notes") ?? DEFAULT_VALUES.notes,
+    lineItems: [
+      {
+        style: params.get("style") ?? DEFAULT_VALUES.lineItems[0]!.style,
+        colour: params.get("colour") ?? DEFAULT_VALUES.lineItems[0]!.colour,
+        quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : DEFAULT_VALUES.lineItems[0]!.quantity,
+        unitPrice:
+          Number.isFinite(unitPrice) && unitPrice > 0 ? unitPrice : DEFAULT_VALUES.lineItems[0]!.unitPrice,
+      },
+    ],
+  };
+  const parsed = newOrderSchema.safeParse(candidate);
+  return parsed.success ? parsed.data : DEFAULT_VALUES;
+}
+
 export function NewOrderForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialValues = React.useMemo(() => readPrefill(searchParams), [searchParams]);
   const addLocalOrder = useLocalOrders((state) => state.addOrder);
   const savedAt = useOrderDraft((state) => state.updatedAt);
   const [step, setStep] = React.useState(1);
@@ -91,7 +116,7 @@ export function NewOrderForm() {
 
   const form = useForm<NewOrderInput>({
     resolver: zodResolver(newOrderSchema),
-    defaultValues: DEFAULT_VALUES,
+    defaultValues: initialValues,
     mode: "onTouched",
   });
   const watched = useWatch({ control: form.control });
@@ -123,7 +148,7 @@ export function NewOrderForm() {
       const snapshot = useOrderDraft.getState();
       if (snapshot.draft) {
         const parsed = newOrderSchema.safeParse(snapshot.draft);
-        form.reset(parsed.success ? parsed.data : DEFAULT_VALUES);
+        form.reset(parsed.success ? parsed.data : initialValues);
         setRestoredFrom(snapshot.updatedAt);
       }
       setHydrated(true);
@@ -132,25 +157,15 @@ export function NewOrderForm() {
     return () => {
       cancelled = true;
     };
-  }, [form]);
+  }, [form, initialValues]);
 
   React.useEffect(() => {
     if (!hydrated) return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const unsubscribe = form.subscribe({
-      formState: { values: true },
-      callback: ({ values }) => {
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(() => {
-          useOrderDraft.getState().save(values);
-        }, 450);
-      },
-    });
-    return () => {
-      if (timer) clearTimeout(timer);
-      unsubscribe();
-    };
-  }, [form, hydrated]);
+    const timer = setTimeout(() => {
+      useOrderDraft.getState().save(watched as NewOrderInput);
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [watched, hydrated]);
 
   const nextStep = async () => {
     const valid =
@@ -165,7 +180,7 @@ export function NewOrderForm() {
 
   const resetDraft = () => {
     useOrderDraft.getState().clear();
-    form.reset(DEFAULT_VALUES);
+    form.reset(initialValues);
     setRestoredFrom(null);
     setStep(1);
     toast.success("Draft cleared", { description: "The form is back to its demo defaults." });

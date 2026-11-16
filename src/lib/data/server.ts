@@ -10,7 +10,13 @@ import {
 import { MATERIALS, type Material } from "@/lib/data/materials";
 import { getDb, hasDatabase } from "@/lib/db";
 import { rowToOrder } from "@/lib/db/mappers";
-import { materials as materialsTable, orderDetails, purchaseOrders } from "@/lib/db/schema";
+import {
+  materials as materialsTable,
+  orderDetails,
+  orderEvents,
+  purchaseOrders,
+  type OrderEvent,
+} from "@/lib/db/schema";
 import type { Order, OrderDetail } from "@/lib/constants";
 
 async function readDbOrders(): Promise<Order[] | null> {
@@ -66,6 +72,23 @@ export async function getOrderDetail(id: string) {
 
   const order = (await getOrders()).find((candidate) => candidate.id === id);
   return order ? buildOrderDetail(order) : null;
+}
+
+export async function getOrderEvents(id: string): Promise<OrderEvent[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(`order-events-${id}`);
+  if (!hasDatabase()) return [];
+  try {
+    return await getDb()
+      .select()
+      .from(orderEvents)
+      .where(eq(orderEvents.orderId, id))
+      .orderBy(orderEvents.createdAt);
+  } catch (error) {
+    console.error("Order event read failed.", error);
+    return [];
+  }
 }
 
 export async function getOrderIds(limit = 8) {

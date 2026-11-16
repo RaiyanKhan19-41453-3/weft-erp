@@ -62,6 +62,8 @@ import {
 import { Progress, Spinner } from "@/components/ui/misc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LocalBadge, OrderStatusBadge, PriorityBadge } from "@/components/orders/status-badge";
+import { StatusControl } from "@/components/orders/status-control";
+import type { OrderEvent } from "@/lib/db/schema";
 
 const NotesEditorDialog = dynamic(
   () => import("@/components/orders/notes-editor").then((module) => module.NotesEditorDialog),
@@ -90,7 +92,15 @@ function NotesEditorLoading() {
   );
 }
 
-export function OrderDetailView({ order }: { order: OrderDetail }) {
+export function OrderDetailView({
+  order,
+  events = [],
+  mutationsEnabled = false,
+}: {
+  order: OrderDetail;
+  events?: OrderEvent[];
+  mutationsEnabled?: boolean;
+}) {
   const router = useRouter();
   const [notesOpen, setNotesOpen] = React.useState(false);
   const storedNote = useOrderNotes((state) => state.notes[order.id]);
@@ -164,6 +174,7 @@ export function OrderDetailView({ order }: { order: OrderDetail }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <StatusControl order={order} enabled={mutationsEnabled} />
             <Button variant="outline" onClick={() => setNotesOpen(true)}>
               <Pencil />
               Edit notes
@@ -490,6 +501,38 @@ export function OrderDetailView({ order }: { order: OrderDetail }) {
                   </li>
                 ))}
               </ol>
+              <div className="mt-5 border-t border-line pt-4">
+                <p className="text-[11.5px] font-semibold">Status history</p>
+                <p className="mt-0.5 text-[10.5px] text-faint">
+                  Database-backed audit trail for this order.
+                </p>
+                {events.length > 0 ? (
+                  <ol className="mt-3 space-y-2">
+                    {events
+                      .slice()
+                      .reverse()
+                      .map((event) => (
+                        <li
+                          key={event.id}
+                          className="flex flex-wrap items-baseline gap-x-2 rounded-md border border-line bg-raised/40 px-3 py-2 text-[10.5px]"
+                        >
+                          <span className="numeric text-faint">{formatDate(event.createdAt)}</span>
+                          <span className="font-medium text-ink">
+                            {event.fromStatus ?? "created"} → {event.toStatus}
+                          </span>
+                          <span className="text-muted">{event.actor}</span>
+                          {event.note ? (
+                            <span className="w-full text-faint">{event.note}</span>
+                          ) : null}
+                        </li>
+                      ))}
+                  </ol>
+                ) : (
+                  <p className="mt-2 text-[10.5px] text-muted">
+                    No status changes recorded yet in this demo.
+                  </p>
+                )}
+              </div>
             </TabsContent>
 
             <TabsContent value="notes" className="p-4">

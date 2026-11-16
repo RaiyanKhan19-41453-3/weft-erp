@@ -638,7 +638,11 @@ function OrdersTableFooter({
           </span>
         ) : (
           <>
-            Showing <span className="numeric text-muted">{formatNumber(resultCount)}</span> of{" "}
+            Showing{" "}
+            <span data-testid="result-count" className="numeric text-muted">
+              {formatNumber(resultCount)}
+            </span>{" "}
+            of{" "}
             <span className="numeric">{formatNumber(totalCount)}</span> POs
           </>
         )}

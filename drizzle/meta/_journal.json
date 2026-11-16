@@ -8,6 +8,13 @@
       "when": 1794820972186,
       "tag": "0000_thin_masque",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794832235855,
+      "tag": "0001_wealthy_iron_patriot",
+      "breakpoints": true
     }
   ]
 }

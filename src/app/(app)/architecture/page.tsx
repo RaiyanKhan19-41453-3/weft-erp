@@ -23,6 +23,7 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/misc";
+import { BrowserVitals } from "@/components/performance-vitals";
 
 export const metadata: Metadata = {
   title: "Architecture & tradeoffs",
@@ -45,11 +46,12 @@ const SECTIONS = [
 const BUNDLE_ROWS = [
   { route: "/", label: "Operations overview", total: "252.4", delta: "2.3" },
   { route: "/analytics", label: "Analytics", total: "252.9", delta: "2.8" },
+  { route: "/architecture", label: "Architecture case study", total: "254.3", delta: "4.2" },
   { route: "/materials", label: "Materials", total: "256.9", delta: "6.8" },
-  { route: "/orders/[id]/invoice", label: "Invoice", total: "260.7", delta: "10.6" },
-  { route: "/orders/[id]", label: "Order detail", total: "267.8", delta: "17.7" },
+  { route: "/orders/[id]/invoice", label: "Invoice", total: "260.1", delta: "10.0" },
+  { route: "/orders/[id]", label: "Order detail", total: "276.1", delta: "26.0" },
   { route: "/orders", label: "Purchase orders", total: "297.7", delta: "47.6" },
-  { route: "/orders/new", label: "New purchase order", total: "331.8", delta: "81.7" },
+  { route: "/orders/new", label: "New purchase order", total: "332.1", delta: "82.0" },
 ] as const;
 
 const BOUNDARIES = [
@@ -381,8 +383,9 @@ export async function getOrderDetail(id: string) {
               configured, created POs are real rows and the API returns{" "}
               <Code>persisted: true</Code>. Without <Code>DATABASE_URL</Code>, the same validated
               payload falls back to <Code>localStorage</Code> and returns{" "}
-              <Code>persisted: false</Code>. Auth, optimistic concurrency, an audit trail and
-              role-based permissions are still out of scope.
+              <Code>persisted: false</Code>. Status changes are real optimistic DB writes with an
+              audit trail; auth, concurrency control and role-based permissions are still out of
+              scope.
             </Callout>
           </Section>
 
@@ -444,7 +447,7 @@ const virtualizer = useVirtualizer({
                 items={[
                   "Server-side pagination and indexed search beyond roughly 50k rows.",
                   "Server-side sort/filter for multi-tenant data and permissions.",
-                  "Row-level optimistic status mutations with rollback and audit history.",
+                  "Concurrency control and role checks around the existing status mutation.",
                   "Keyboard grid navigation and a proper column-resize model.",
                   "Automated performance budget checks in CI, not just one measured build.",
                 ]}
@@ -596,6 +599,18 @@ const virtualizer = useVirtualizer({
               the shell because the KPI grid, risk table and buyer list are all Server Components.
               Its charts are lazy. That is the RSC boundary doing its job.
             </Callout>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <BrowserVitals />
+              <div className="rounded-lg border border-line bg-raised/40 p-3.5">
+                <p className="text-[11.5px] font-semibold">Why this panel exists</p>
+                <p className="mt-1.5 text-[10.5px] leading-4 text-muted">
+                  Lighthouse gives a repeatable lab run. <Code>web-vitals</Code> measures the browser
+                  actually rendering this page. INP needs real interactions, so the panel records
+                  it locally rather than inventing a field score. Targets: LCP 2.5 s, INP 200 ms,
+                  CLS 0.1.
+                </p>
+              </div>
+            </div>
           </Section>
 
           <Section
@@ -626,8 +641,9 @@ const virtualizer = useVirtualizer({
               />
             </div>
             <Callout tone="warning" icon={<CircleAlert className="size-4" />}>
-              The Code 39-style barcode is a visual demo, not a certified or scan-tested symbol. A
-              production shipping label would use a maintained barcode library and GS1 validation.
+              The Code 39 SVG is generated server-side by <Code>bwip-js</Code> and is scannable. It
+              is not a GS1/GTIN shipping label — a compliant label would still need GS1 validation
+              and fixed symbology rules.
               The invoice is explicitly marked as synthetic and is not a negotiable document.
             </Callout>
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -659,6 +675,7 @@ const virtualizer = useVirtualizer({
                 ["Empty and error states", "Every async surface has a loading skeleton, retry path and clear-filter action."],
                 ["Hydration-safe local state", "Persist stores use skipHydration and explicit rehydration flags."],
                 ["Honest demo actions", "Bulk actions and requisitions say they are demo-only; no fake success claims."],
+                ["Automated flows", "Playwright checks the grid, form, print and prefill flows on every CI run."],
               ].map(([title, body]) => (
                 <div key={title} className="rounded-lg border border-line bg-surface px-3.5 py-3">
                   <p className="flex items-center gap-1.5 text-[11px] font-semibold">
@@ -674,7 +691,8 @@ const virtualizer = useVirtualizer({
               for performance, accessibility, best practices and SEO on all eight reviewed routes.
               Dashboard LCP is 0.28 s with CLS 0.005; the orders route is 0.26 s with CLS 0.012.
               Total Blocking Time was 50 ms and 70 ms respectively — an INP proxy, not a field INP
-              measurement.
+              measurement. The panel above records real browser metrics locally instead of claiming
+              an aggregate.
             </Callout>
             <Callout tone="neutral" icon={<CircleAlert className="size-4" />}>
               This is a desktop-first ERP interface. Compact controls are 28–32px tall, which suits
@@ -704,7 +722,7 @@ const virtualizer = useVirtualizer({
                     [
                       "Seeded Postgres, generator fallback",
                       "Free Neon persistence with reproducible builds and no committed secrets.",
-                      "Still no auth, audit trail or multi-user permissions.",
+                      "Audit trail exists; auth, concurrency and multi-user permissions do not.",
                     ],
                     [
                       "Fetch-all then client filter",
@@ -724,7 +742,7 @@ const virtualizer = useVirtualizer({
                     [
                       "Unit tests, no browser E2E yet",
                       "Vitest covers data builders, schema rules and invoice wording.",
-                      "Table, form and print flows still need Playwright and CI budgets.",
+                      "Playwright covers core flows; visual regression and CI budgets are still missing.",
                     ],
                   ].map(([decision, payoff, cost]) => (
                     <tr key={decision}>
@@ -743,9 +761,9 @@ const virtualizer = useVirtualizer({
                 items={[
                   "Auth and environment branches around the Drizzle repository already in place.",
                   "Auth and role boundaries for merchandiser, factory and buyer views.",
-                  "Server actions or route handlers for status changes with optimistic UI and audit logs.",
+                  "Concurrency control and role checks around the existing optimistic status mutation.",
                   "Server-side pagination, indexed search and permission-scoped queries.",
-                  "Grow the Vitest suite, then add Playwright for the table, form and print flows.",
+                  "Add visual regression and real-user INP collection beside the existing Playwright suite.",
                 ]}
               />
               <BulletList
@@ -996,6 +1014,8 @@ function routeDependency(route: string) {
       return "Filter table, Radix Checkbox";
     case "/analytics":
       return "Analytics shell; charts lazy";
+    case "/architecture":
+      return "Web Vitals panel";
     default:
       return "Server-rendered content";
   }

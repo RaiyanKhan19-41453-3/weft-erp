@@ -9,6 +9,7 @@ import {
   PackageOpen,
   Truck,
 } from "lucide-react";
+import { STYLES } from "@/lib/constants";
 import { getMaterials } from "@/lib/data/server";
 import { buildMaterialsSummary, type Material } from "@/lib/data/materials";
 import { PageHeader } from "@/components/page-header";
@@ -36,6 +37,15 @@ const STATUS_LABEL = {
   watch: "On watch",
   ok: "Healthy",
 } as const;
+
+function styleForMaterial(material: Material) {
+  const name = material.name.toLowerCase();
+  if (name.includes("denim")) return STYLES[2]!.name;
+  if (name.includes("fleece")) return STYLES[1]!.name;
+  if (name.includes("jersey") || name.includes("knit")) return STYLES[4]!.name;
+  if (name.includes("twill") || name.includes("canvas")) return STYLES[3]!.name;
+  return STYLES[8]!.name;
+}
 
 function coverageWeeks(material: Material) {
   return material.weeklyUse ? material.onHand / material.weeklyUse : Number.POSITIVE_INFINITY;
@@ -182,7 +192,7 @@ export default async function MaterialsPage() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[620px] text-left text-[11.5px]">
+              <table className="w-full min-w-[720px] text-left text-[11.5px]">
                 <thead>
                   <tr className="border-y border-line bg-raised/60 text-[9px] uppercase tracking-[0.08em] text-faint">
                     <th className="px-4 py-2 font-medium">Material</th>
@@ -190,6 +200,7 @@ export default async function MaterialsPage() {
                     <th className="px-3 py-2 text-right font-medium">Cover</th>
                     <th className="px-3 py-2 font-medium">Inbound</th>
                     <th className="px-3 py-2 text-right font-medium">Suggested buy</th>
+                    <th className="px-3 py-2 font-medium">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -247,6 +258,15 @@ export default async function MaterialsPage() {
                         ) : (
                           <span className="text-[10px] text-muted">Inbound covers target</span>
                         )}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <Button asChild variant="outline" size="sm" className="h-7 text-[10px]">
+                          <Link
+                            href={`/orders/new?style=${encodeURIComponent(styleForMaterial(material))}&colour=${encodeURIComponent(material.colour)}&quantity=${buy || material.reorderPoint}&unitPrice=${Math.max(1, material.unitCost)}`}
+                          >
+                            Raise PO
+                          </Link>
+                        </Button>
                       </td>
                     </tr>
                   ))}

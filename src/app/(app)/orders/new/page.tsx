@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
@@ -36,7 +37,9 @@ export default function NewOrderPage() {
           </Button>
         }
       />
-      <NewOrderForm />
+      <Suspense fallback={<div className="h-96 animate-pulse rounded-card bg-raised/50" />}>
+        <NewOrderForm />
+      </Suspense>
     </>
   );
 }

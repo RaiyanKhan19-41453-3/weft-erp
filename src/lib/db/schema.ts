@@ -53,6 +53,24 @@ export const orderDetails = pgTable("order_details", {
   updatedAt: text("updated_at").notNull(),
 });
 
+export const orderEvents = pgTable(
+  "order_events",
+  {
+    id: text("id").primaryKey(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => purchaseOrders.id, { onDelete: "cascade" }),
+    fromStatus: text("from_status").$type<OrderStatus>(),
+    toStatus: text("to_status").$type<OrderStatus>().notNull(),
+    note: text("note"),
+    actor: text("actor").notNull().default("demo-operator"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [index("order_events_order_idx").on(table.orderId)],
+);
+
+export type OrderEvent = typeof orderEvents.$inferSelect;
+
 export const materials = pgTable("materials", {
   sku: text("sku").primaryKey(),
   payload: jsonb("payload").$type<Material>().notNull(),

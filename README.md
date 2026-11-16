@@ -45,8 +45,8 @@ The entire workspace runs on Vercel's free tier with no paid services. It is con
 | `/` | Server-rendered KPI grid, 12-week throughput chart, shipment-risk queue, buyer concentration and a five-SKU low-stock callout. |
 | `/orders` | 5,000 POs in a TanStack Table + Virtual grid. Sort, global search, stage/buyer/risk filters, column visibility, row selection, density preference, URL-addressable filters and CSV export. |
 | `/orders/new` | Three-step React Hook Form wizard with a shared Zod schema, per-step validation, API submission and a recoverable Zustand draft. |
-| `/orders/[id]` | Order summary, size allocation, line items, production timeline, lazy Tiptap notes and shipment/buyer rail. |
-| `/orders/[id]/invoice` | Two-page A4 commercial invoice and packing list with totals, amount in words, carton allocation and a Code 39-style barcode. |
+| `/orders/[id]` | Order summary, size allocation, line items, production timeline, optimistic status changes with an audit trail, lazy Tiptap notes and shipment/buyer rail. |
+| `/orders/[id]/invoice` | Two-page A4 commercial invoice and packing list with totals, amount in words, carton allocation and a generated Code 39 barcode. |
 | `/materials` | Twelve fabric/trim SKUs with coverage weeks, reorder states, inbound supply and suggested buys. |
 | `/analytics` | Factory output, on-time trend, capacity utilisation (Unit 04 intentionally over capacity), defect causes, buyer scorecards and CSV export. |
 | `/architecture` | The engineering case study: RSC boundaries, cache design, grid tradeoffs, measured bundles, print strategy, accessibility and what was deliberately left out. |
@@ -69,7 +69,9 @@ Cross-cutting details: command palette on <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>K<
 | UI | shadcn-style copy-in Radix/Tailwind primitives, cmdk, Sonner, Lucide icons, next-themes |
 | Charts | Recharts 3, loaded lazily |
 | Editor | Tiptap 3 + DOMPurify, loaded on demand |
-| Tests | Vitest 5 |
+| Print | Server-generated Code 39 SVGs with `bwip-js` |
+| Observability | `web-vitals` for browser-measured LCP/INP/CLS/FCP/TTFB |
+| Tests | Vitest 5 + Playwright 1 |
 
 ## Architecture
 
@@ -137,11 +139,12 @@ These are **initial route JS** figures from the production build, summed from ea
 | --- | ---: | ---: |
 | `/` | 252.4 KB | +2.3 KB |
 | `/analytics` | 252.9 KB | +2.8 KB |
+| `/architecture` | 254.3 KB | +4.2 KB |
 | `/materials` | 256.9 KB | +6.8 KB |
-| `/orders/[id]/invoice` | 260.7 KB | +10.6 KB |
-| `/orders/[id]` | 267.8 KB | +17.7 KB |
+| `/orders/[id]/invoice` | 260.1 KB | +10.0 KB |
+| `/orders/[id]` | 276.1 KB | +26.0 KB |
 | `/orders` | 297.7 KB | +47.6 KB |
-| `/orders/new` | 331.8 KB | +81.7 KB |
+| `/orders/new` | 332.1 KB | +82.0 KB |
 
 The shared baseline is about 250 KB gzip: React 19, the App Router runtime, the persistent shell and Radix primitives. The shell is interactive on every page, so it is a deliberate cost; hiding it behind a client-only boundary would trade a smaller first load for a layout flash on every navigation. The dashboard adds only 2.3 KB because its KPI grid, risk table and buyer list are Server Components and its charts are lazy.
 
@@ -171,7 +174,7 @@ TBT is a lab proxy for INP, not a field INP measurement. A separate Chromium che
 
 The verified sample is committed at [`docs/weft-sample-invoice.pdf`](docs/weft-sample-invoice.pdf). To reproduce it, open the invoice, choose **A4**, enable **background graphics**, and turn off browser headers and footers.
 
-The barcode is a visual Code 39-style demo, not a certified or scan-tested symbol. A production shipping label would use a maintained barcode library and GS1 validation.
+The barcode is a real Code 39 SVG generated server-side by `bwip-js` through `/api/barcode`, so it is scannable. It is not a GS1/GTIN shipping label — a certified label would still need GS1 validation and fixed symbology rules.
 
 ## Quality
 
@@ -184,15 +187,17 @@ Verified on 16 Nov 2026:
 - Production QA — creating a local PO, draft autosave/restore, local detail after reload, local invoice print, no console errors
 - Print QA — sample invoice is exactly two A4 pages
 - Lighthouse desktop — 100/100/100/100 on all eight reviewed routes, with no failed accessibility audits
+- Playwright — 5 end-to-end tests covering dashboard, command palette, Web Vitals panel, the 5,000-row explorer, PO draft/create/print and materials→PO prefill
+- Browser Web Vitals — `web-vitals` reports LCP, INP, CLS, FCP and TTFB into a case-study panel using locally stored values only
 
-The test suite covers the deterministic order book, dashboard/analytics consistency, size allocation, materials thresholds, new-order validation and amount-in-words formatting. There is **no browser E2E or visual regression suite yet**; Playwright coverage for the table, form and print flows is the next testing step.
+The Vitest suite covers the deterministic order book, dashboard/analytics consistency, size allocation, materials thresholds, new-order validation, CSV safety, DB mappers and amount-in-words formatting. Playwright covers the critical UI flows on every CI run. Visual regression and field INP collection are still out of scope.
 
 Accessibility work includes a skip link, labelled landmarks, semantic data-grid roles, visible focus rings, keyboard-operable Radix dialogs/menus, status labels that do not rely on colour alone, reduced-motion handling and loading/error/empty states.
 
 ## Demo boundaries
 
 - All manufacturer, buyer, supplier, purchase order, invoice, barcode and performance data is **synthetic**. Weft is a portfolio project; nothing here is a real commercial document.
-- There is no authentication, multi-user behaviour or mutation of the generated demo rows. Status changes and bulk actions that look destructive are labelled demo-only or disabled.
+- There is no authentication or multi-user behaviour. Status changes are real database writes with an audit trail; bulk actions that look destructive are labelled demo-only or disabled.
 - With a database configured, newly created POs are real Postgres rows served to every visitor. Without one they live in `localStorage` only. Drafts, notes, table density and theme remain per-browser in Phase 1.
 - The interface is desktop-first. Compact 28–32 px controls suit mouse and keyboard work but are below the 44 px touch-target recommendation. Mobile gets a slide-over nav and horizontally scrollable tables rather than a separate operator app.
 - No field INP, user count or synthetic benchmark is claimed. Lighthouse figures are explicitly local lab measurements.
@@ -215,6 +220,7 @@ Open [http://localhost:3000](http://localhost:3000). The demo snapshot is fixed 
 | `npm start` | Serve the production build |
 | `npm run lint` | ESLint |
 | `npm test` | Vitest, single run |
+| `npm run test:e2e` | Playwright end-to-end suite |
 | `npx tsc --noEmit` | TypeScript check |
 
 Optional environment variable: `NEXT_PUBLIC_SITE_URL` sets the canonical metadata URL. On Vercel, `VERCEL_PROJECT_PRODUCTION_URL` is used automatically when it is absent.
@@ -270,9 +276,12 @@ src/
     (app)/                  dashboard, orders, detail, invoice, materials,
                             analytics, architecture
     api/orders/route.ts     cached GET + validated POST
+    api/orders/[id]/status/ optimistic status mutations + audit trail
+    api/barcode/route.ts    server-generated Code 39 SVG
   components/
     orders/                 explorer, columns, toolbar, form, detail,
-                            notes, invoice, barcode, print toolbar
+                            status control, notes, invoice, barcode, print toolbar
+    performance-vitals.tsx  browser-measured Web Vitals panel
     dashboard/ analytics/   lazy chart islands
     materials/ shell/ ui/   table, navigation, primitives
   lib/
@@ -281,6 +290,7 @@ src/
     stores/                 Zustand stores (drafts, local POs, notes, prefs)
     validation/             shared Zod schema
     __tests__/              Vitest suite
+tests/e2e/                  Playwright critical-flow suite
 drizzle/                    generated SQL migrations
 docs/
   screenshots/              README assets
@@ -292,10 +302,10 @@ docs/
 
 1. Hosted Postgres is already wired behind the cached repository; next is auth, migrations in CI and environment branches.
 2. Auth and role boundaries for merchandiser, factory and buyer views.
-3. Server actions or route handlers for status changes with optimistic UI, concurrency control and an audit trail.
+3. Concurrency control and richer role boundaries around the existing status mutation and audit trail.
 4. Server-side pagination, indexed search and permission-scoped queries.
-5. Playwright coverage for the grid, form, detail and print flows, plus CI bundle budgets.
-6. A maintained barcode implementation with GS1 validation for shipping labels.
+5. Visual regression and real-user INP collection, plus CI bundle budgets.
+6. GS1/GTIN validation and label compliance around the generated Code 39 barcode.
 
 ## Author
 

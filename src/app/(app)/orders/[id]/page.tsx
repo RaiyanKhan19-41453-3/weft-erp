@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { getOrderDetail, getOrderIds } from "@/lib/data/server";
+import { getOrderDetail, getOrderEvents, getOrderIds } from "@/lib/data/server";
 import { OrderDetailView } from "@/components/orders/order-detail-view";
 import { LocalOrderDetail } from "@/components/orders/local-order-detail";
 import { OrderDetailSkeleton } from "@/components/orders/detail-skeleton";
@@ -27,10 +27,16 @@ export default function OrderPage({ params }: { params: Params }) {
 
 async function OrderContent({ params }: { params: Params }) {
   const { id } = await params;
-  const order = await getOrderDetail(id);
+  const [order, events] = await Promise.all([getOrderDetail(id), getOrderEvents(id)]);
 
   if (order) {
-    return <OrderDetailView order={order} />;
+    return (
+      <OrderDetailView
+        order={order}
+        events={events}
+        mutationsEnabled={Boolean(process.env.DATABASE_URL)}
+      />
+    );
   }
 
   return <LocalOrderDetail id={id} />;

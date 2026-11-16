@@ -4,7 +4,7 @@ import { buildOrderDetail, generateOrders } from "../data/orders";
 import { MATERIALS } from "../data/materials";
 import { getDb } from "./index";
 import { orderToRow } from "./mappers";
-import { materials, orderDetails, purchaseOrders } from "./schema";
+import { materials, orderDetails, orderEvents, purchaseOrders } from "./schema";
 
 config({ path: ".env.local" });
 config({ path: ".env" });
@@ -46,6 +46,21 @@ async function main() {
             updatedAt: detail.poDate,
           };
         }),
+      )
+      .onConflictDoNothing();
+
+    await db
+      .insert(orderEvents)
+      .values(
+        batch.map((order) => ({
+          id: `${order.id}-seeded`,
+          orderId: order.id,
+          fromStatus: null,
+          toStatus: order.status,
+          note: "Seeded from the deterministic order book",
+          actor: "seed",
+          createdAt: order.createdAt,
+        })),
       )
       .onConflictDoNothing();
 
