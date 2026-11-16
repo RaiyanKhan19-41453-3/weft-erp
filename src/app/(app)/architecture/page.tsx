@@ -682,6 +682,7 @@ const virtualizer = useVirtualizer({
                 ["MRP flow", "BOM reservations, goods receipts and coverage are derived from the same order records."],
                 ["Integration surface", "OpenAPI, API keys, signed webhooks, idempotent writes and immutable invoice versions."],
                 ["Operational signal", "Structured logs, OTel spans, custom metrics, uptime checks and shared rate limits."],
+                ["Commercial surface", "Tenant branding, feature flags, seat/order quotas and Stripe sandbox checkout."],
               ].map(([title, body]) => (
                 <div key={title} className="rounded-lg border border-line bg-surface px-3.5 py-3">
                   <p className="flex items-center gap-1.5 text-[11px] font-semibold">

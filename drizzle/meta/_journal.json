@@ -57,6 +57,20 @@
       "when": 1794854841437,
       "tag": "0007_massive_greymalkin",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794857577764,
+      "tag": "0008_fat_black_bird",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794862872124,
+      "tag": "0009_overjoyed_meltdown",
+      "breakpoints": true
     }
   ]
 }

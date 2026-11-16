@@ -5,7 +5,7 @@ export default defineConfig({
   outputDir: "test-results",
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
-  retries: process.env.CI ? 1 : 0,
+  retries: process.env.CI || process.env.E2E_SERVER_QUERY ? 1 : 0,
   workers: process.env.CI || process.env.E2E_SERVER_QUERY ? 1 : undefined,
   reporter: process.env.CI ? "line" : [["html", { open: "never" }]],
   use: {

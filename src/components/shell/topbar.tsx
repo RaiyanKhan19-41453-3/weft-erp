@@ -217,6 +217,18 @@ export function Topbar() {
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
+              <Link href="/settings">
+                <Layers />
+                Workspace settings
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/admin">
+                <Layers />
+                Support overview
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
               <Link href="/architecture">
                 <Layers />
                 Architecture notes

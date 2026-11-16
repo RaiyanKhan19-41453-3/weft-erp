@@ -114,6 +114,12 @@ The dashboard refreshes hourly; the order book and detail records are cached dai
 
 **Persistence modes.** With no `DATABASE_URL`, the API validates submissions and returns the created record, but writes it to `localStorage` with `persisted: false`. When Neon is configured, signed-in users write into their organization; the API returns `persisted: true` and revalidates tenant cache tags. Public visitors get a read-only demo scoped to the seeded demo organization. Drafts, table density and theme stay in `localStorage` either way. Setup is documented in [`docs/DB_SETUP.md`](docs/DB_SETUP.md).
 
+## Commercial layer
+
+Self-serve sign-up creates an organization with a free plan. Owners and admins can set brand name, accent colour and enabled modules in `/settings`, with plan limits stored per tenant and enforced when creating orders. Stripe sandbox Checkout handles Pro and Enterprise subscriptions; the signed webhook updates the workspace plan, seats and monthly quota, and the billing portal handles management. `/admin` gives owners/admins a support overview. Static `/status`, `/terms`, `/privacy`, `/support` and `/changelog` pages complete the customer-facing surface.
+
+The Stripe resource is currently a sandbox and must be claimed in Vercel before real charges are possible. Impersonation is not implemented.
+
 ## Operations
 
 Server routes emit structured JSON logs with request and tenant IDs; `instrumentation.ts` registers OpenTelemetry for Vercel Tracing. Client errors are reported to `/api/errors`, and `metric()` emits `orders.created` and `orders.status_changed` samples. A daily private Vercel Schedule runs `api/order-reminders.ts`. GitHub Actions checks production routes every 30 minutes and runs `npm audit --omit=dev --audit-level=high` on every push. Responses include CSP, frame, referrer and permissions headers; mutating APIs check same-origin. Shared rate-limit counters live in Neon's `rate_limit_events` table.

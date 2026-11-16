@@ -173,6 +173,19 @@ export const rateLimitEvents = pgTable(
   (table) => [primaryKey({ columns: [table.key, table.windowStart] })],
 );
 
+export const tenantSettings = pgTable("tenant_settings", {
+  organizationId: text("organization_id").primaryKey(),
+  brandName: text("brand_name").notNull().default("Weft"),
+  accent: text("accent").notNull().default("#2f7d63"),
+  features: text("features").notNull().default("orders,materials,analytics,invoices"),
+  plan: text("plan").notNull().default("free"),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  seatLimit: integer("seat_limit").notNull().default(5),
+  monthlyOrderLimit: integer("monthly_order_limit").notNull().default(100_000),
+  updatedAt: text("updated_at").notNull(),
+});
+
 export const apiKeys = pgTable(
   "api_keys",
   {
@@ -188,6 +201,12 @@ export const apiKeys = pgTable(
   },
   (table) => [index("api_keys_org_idx").on(table.organizationId)],
 );
+
+export const processedWebhookEvents = pgTable("processed_webhook_events", {
+  id: text("id").primaryKey(),
+  provider: text("provider").notNull(),
+  createdAt: text("created_at").notNull(),
+});
 
 export const webhooks = pgTable(
   "webhooks",

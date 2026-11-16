@@ -120,17 +120,17 @@ This file tracks the work from a portfolio demo toward an enterprise-grade multi
 
 ---
 
-## Milestone 7 — Commercial layer `[ ]`
+## Milestone 7 — Commercial layer `[~]`
 
 **Goal:** a second organization can onboard and pay without manual intervention.
 
-- [ ] Stripe subscriptions, seats and usage quotas
-- [ ] Self-serve tenant onboarding
-- [ ] Per-tenant branding and feature flags
-- [ ] Admin console for support and impersonation
-- [ ] Status page, terms and privacy policy
-- [ ] Support flow and escalation runbook
-- [ ] Customer-facing changelog
+- [x] Stripe sandbox subscriptions, seats and usage quotas
+- [x] Self-serve tenant onboarding — sign-up creates an organization
+- [x] Per-tenant branding and feature flags
+- [x] Admin support overview — impersonation still deferred
+- [x] Status page, terms and privacy policy
+- [x] Support flow and escalation runbook
+- [x] Customer-facing changelog
 
 ---
 

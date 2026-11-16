@@ -1,6 +1,6 @@
 import { metric } from "@vercel/functions";
 import { revalidateTag } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
 import { bomForStyle } from "@/lib/bom";
 import { getViewer, hasPermission } from "@/lib/auth-guards";
 import { buildLocalDetail, buildLocalOrder, type LocalOrderInput } from "@/lib/data/orders";
@@ -12,6 +12,7 @@ import {
   materialReservations,
   orderDetails,
   purchaseOrders,
+  tenantSettings,
 } from "@/lib/db/schema";
 import { newOrderSchema } from "@/lib/validation/new-order";
 import { dispatchWebhook } from "@/lib/webhooks";
@@ -106,6 +107,36 @@ export async function POST(request: Request) {
   };
 
   const input = parsed.data;
+
+  if (hasDatabase() && viewer.authenticated) {
+    const db = getDb();
+    const [settings] = await db
+      .select()
+      .from(tenantSettings)
+      .where(eq(tenantSettings.organizationId, viewer.orgId))
+      .limit(1);
+    if (settings) {
+      const monthStart = new Date();
+      monthStart.setUTCDate(1);
+      monthStart.setUTCHours(0, 0, 0, 0);
+      const [usage] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(purchaseOrders)
+        .where(
+          and(
+            eq(purchaseOrders.organizationId, viewer.orgId),
+            gte(purchaseOrders.createdAt, monthStart.toISOString()),
+          ),
+        );
+      if ((usage?.count ?? 0) >= settings.monthlyOrderLimit) {
+        return Response.json(
+          { error: "Monthly order quota reached for this workspace." },
+          { status: 429 },
+        );
+      }
+    }
+  }
+
   const localInput: LocalOrderInput = {
     buyerName: input.buyerName,
     factory: input.factory,

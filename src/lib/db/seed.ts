@@ -11,6 +11,7 @@ import {
   bomLines,
   materialReservations,
   materials,
+  tenantSettings,
   orderDetails,
   orderEvents,
   purchaseOrders,
@@ -46,6 +47,17 @@ async function main() {
       createdAt: now,
     })
     .onConflictDoNothing();
+
+  await db
+    .insert(tenantSettings)
+    .values({
+      organizationId: DEMO_ORG_ID,
+      updatedAt: now.toISOString(),
+    })
+    .onConflictDoUpdate({
+      target: tenantSettings.organizationId,
+      set: { monthlyOrderLimit: 100_000, updatedAt: now.toISOString() },
+    });
 
   await db
     .insert(user)
