@@ -175,6 +175,7 @@ export function NewOrderForm() {
     try {
       const { data: payload } = await apiClient.post<{
         detail?: OrderDetail;
+        meta?: { persisted?: boolean; message?: string };
         error?: string;
       }>("/orders", values);
 
@@ -187,10 +188,13 @@ export function NewOrderForm() {
         return;
       }
 
-      addLocalOrder(payload.detail);
+      const persisted = payload.meta?.persisted === true;
+      if (!persisted) addLocalOrder(payload.detail);
       useOrderDraft.getState().clear();
       toast.success(`Purchase order ${payload.detail.id} created`, {
-        description: "Validated by the API and saved in this browser only.",
+        description: persisted
+          ? "Validated by the API and saved to the database."
+          : "Validated by the API and saved in this browser only.",
       });
       router.push(`/orders/${payload.detail.id}`);
     } catch (error) {

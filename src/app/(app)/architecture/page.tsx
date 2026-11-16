@@ -191,7 +191,7 @@ export default function ArchitecturePage() {
                 <ul className="mt-2 space-y-2 text-[11.5px] leading-5 text-muted">
                   <li className="flex gap-2">
                     <Check className="mt-0.5 size-3.5 shrink-0 text-positive" />
-                    No backend, auth or paid services — everything must run on a free Vercel tier.
+                    No paid services — free Postgres is optional, everything runs on Vercel&apos;s free tier.
                   </li>
                   <li className="flex gap-2">
                     <Check className="mt-0.5 size-3.5 shrink-0 text-positive" />
@@ -324,11 +324,11 @@ export default function ArchitecturePage() {
             kicker="Data layer"
           >
             <p className="text-[12.5px] leading-6 text-muted">
-              There is no database in the demo, but there is a deliberate data layer.{" "}
-              <Code>generateOrders()</Code> is a seeded generator: a fixed anchor date and a
-              mulberry32 PRNG produce the same 5,000 POs on every server and every build. Buyer,
-              style, factory, progress, risk and due dates are derived from that stream, so the
-              dashboard, explorer, detail pages and analytics cannot disagree with each other.
+              The data layer has two modes. With <Code>DATABASE_URL</Code>, Drizzle reads 5,000
+              seeded rows from Neon Postgres. Without it, <Code>generateOrders()</Code> produces
+              the identical deterministic book from a fixed anchor date and a mulberry32 PRNG.
+              Both paths flow through the same cached functions, so the dashboard, explorer, detail
+              pages and analytics cannot disagree with each other.
             </p>
             <CodeBlock
               title="src/lib/data/server.ts"
@@ -336,15 +336,17 @@ export default function ArchitecturePage() {
   "use cache";
   cacheLife("days");
   cacheTag("orders");
-  return generateOrders();
+  return (await readDbOrders()) ?? generateOrders();
 }
 
 export async function getOrderDetail(id: string) {
   "use cache";
   cacheLife("days");
   cacheTag("orders", \`order-\${id}\`);
-  const orders = await getOrders();
-  const order = orders.find((candidate) => candidate.id === id);
+  const stored = await readDbDetail(id);
+  if (stored) return stored;
+
+  const order = (await getOrders()).find((item) => item.id === id);
   return order ? buildOrderDetail(order) : null;
 }`}
             />
@@ -357,7 +359,7 @@ export async function getOrderDetail(id: string) {
                 <ul className="mt-1.5 space-y-1.5 text-[10.5px] leading-4 text-muted">
                   <li>Dashboard refreshes hourly; the order book and detail records daily.</li>
                   <li>Partial prerendering ships a static shell while cached data streams in.</li>
-                  <li>Tags make invalidation a one-line change when a real mutation arrives.</li>
+                  <li>The POST route revalidates <Code>orders</Code> and the affected order tag after a write.</li>
                   <li>The JSON endpoint is cacheable too: <Code>/api/orders</Code> gets a one-day s-maxage.</li>
                 </ul>
               </div>
@@ -370,15 +372,17 @@ export async function getOrderDetail(id: string) {
                   <li>No hydration drift between server HTML and client table rows.</li>
                   <li>Screenshots and reviewer feedback stay comparable over time.</li>
                   <li>The dataset is reproducible without shipping a 2 MB JSON fixture.</li>
-                  <li>Swapping in Postgres later keeps the same read interface.</li>
+                  <li>The same read interface now serves Postgres rows when configured.</li>
                 </ul>
               </div>
             </div>
             <Callout tone="warning" icon={<CircleAlert className="size-4" />}>
-              <strong className="font-semibold text-ink">Honest boundary:</strong> browser-created
-              POs are validated by the API but persisted in localStorage. The API returns{" "}
-              <Code>persisted: false</Code>. A real ERP would need a database, optimistic
-              concurrency, an audit trail and role-based permissions before this pattern could ship.
+              <strong className="font-semibold text-ink">Honest boundary:</strong> with a database
+              configured, created POs are real rows and the API returns{" "}
+              <Code>persisted: true</Code>. Without <Code>DATABASE_URL</Code>, the same validated
+              payload falls back to <Code>localStorage</Code> and returns{" "}
+              <Code>persisted: false</Code>. Auth, optimistic concurrency, an audit trail and
+              role-based permissions are still out of scope.
             </Callout>
           </Section>
 
@@ -698,9 +702,9 @@ const virtualizer = useVirtualizer({
                 <tbody className="divide-y divide-line">
                   {[
                     [
-                      "Synthetic 5k dataset, no DB",
-                      "Zero hosting cost, deterministic demos, no secrets.",
-                      "No real mutations, auth or multi-user behaviour.",
+                      "Seeded Postgres, generator fallback",
+                      "Free Neon persistence with reproducible builds and no committed secrets.",
+                      "Still no auth, audit trail or multi-user permissions.",
                     ],
                     [
                       "Fetch-all then client filter",
@@ -708,9 +712,9 @@ const virtualizer = useVirtualizer({
                       "Not appropriate for very large or permissioned datasets.",
                     ],
                     [
-                      "Browser-local POs",
-                      "The create flow is fully demonstrable on free hosting.",
-                      "Clearing storage loses data; no cross-device continuity.",
+                      "Browser-local fallback",
+                      "The create flow still works with no DATABASE_URL at all.",
+                      "In fallback mode, clearing storage loses data.",
                     ],
                     [
                       "Localized React Compiler disables",
@@ -737,7 +741,7 @@ const virtualizer = useVirtualizer({
               <BulletList
                 title="If this became a real product"
                 items={[
-                  "Postgres with Prisma or Drizzle; repository interface behind the current data functions.",
+                  "Auth and environment branches around the Drizzle repository already in place.",
                   "Auth and role boundaries for merchandiser, factory and buyer views.",
                   "Server actions or route handlers for status changes with optimistic UI and audit logs.",
                   "Server-side pagination, indexed search and permission-scoped queries.",

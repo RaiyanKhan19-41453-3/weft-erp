@@ -1,5 +1,9 @@
+import { revalidateTag } from "next/cache";
 import { buildLocalDetail, buildLocalOrder, type LocalOrderInput } from "@/lib/data/orders";
 import { getOrders } from "@/lib/data/server";
+import { getDb, hasDatabase } from "@/lib/db";
+import { orderToRow } from "@/lib/db/mappers";
+import { orderDetails, purchaseOrders } from "@/lib/db/schema";
 import { newOrderSchema } from "@/lib/validation/new-order";
 
 function escapeHtml(value: string) {
@@ -58,6 +62,51 @@ export async function POST(request: Request) {
 
   if (input.notes?.trim()) {
     detail.qcNote = `<p><strong>Handover note</strong></p><p>${escapeHtml(input.notes.trim())}</p>`;
+  }
+
+  if (hasDatabase()) {
+    try {
+      const db = getDb();
+      const persistedOrder = { ...order, isLocal: false };
+      const persistedDetail = { ...detail, isLocal: false };
+
+      const inserted = await db
+        .insert(purchaseOrders)
+        .values(orderToRow(persistedOrder))
+        .returning({ id: purchaseOrders.id });
+
+      if (!inserted.length) {
+        return Response.json({ error: "That purchase order already exists." }, { status: 409 });
+      }
+
+      await db.insert(orderDetails).values({
+        orderId: persistedOrder.id,
+        detail: persistedDetail,
+        colour: persistedDetail.colour,
+        updatedAt: persistedDetail.poDate,
+      });
+
+      revalidateTag("orders", "max");
+      revalidateTag(`order-${id}`, "max");
+
+      return Response.json(
+        {
+          order: persistedOrder,
+          detail: persistedDetail,
+          meta: {
+            persisted: true,
+            message: "Stored in the database.",
+          },
+        },
+        { status: 201 },
+      );
+    } catch (error) {
+      console.error("Database write failed.", error);
+      return Response.json(
+        { error: "The order could not be saved to the database. Try again." },
+        { status: 503 },
+      );
+    }
   }
 
   return Response.json(

@@ -9,6 +9,7 @@ import { buildMaterialsSummary } from "@/lib/data/materials";
 import { newOrderSchema } from "@/lib/validation/new-order";
 import { amountInWords } from "@/lib/words";
 import { csvEscape } from "@/lib/utils";
+import { orderToRow, rowToOrder } from "@/lib/db/mappers";
 import { DEMO_TODAY } from "@/lib/constants";
 
 const orders = generateOrders();
@@ -129,5 +130,20 @@ describe("csv export", () => {
     expect(csvEscape("  @SUM(A1)")).toBe("'  @SUM(A1)");
     expect(csvEscape('North, "Pine"')).toBe('"North, ""Pine"""');
     expect(csvEscape(-125)).toBe("-125");
+  });
+});
+
+describe("database mappers", () => {
+  it("round-trips an order through numeric columns", () => {
+    const original = orders[0]!;
+    const row = orderToRow(original);
+    const restored = rowToOrder({
+      ...row,
+      onTime: row.onTime ?? null,
+      atRisk: row.atRisk ?? false,
+      isLocal: row.isLocal ?? false,
+    });
+
+    expect(restored).toEqual({ ...original, isLocal: false });
   });
 });

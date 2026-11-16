@@ -16,7 +16,7 @@ Data-heavy business software is mostly judged in the details. A marketing page c
 
 Apparel manufacturing supplied the constraints: purchase orders, style/colour/size matrices, production stages, material coverage, factory capacity, buyer scorecards and shipping paperwork. Every screen has a job because the domain needs it, not because a component library had a demo.
 
-The entire workspace runs on Vercel's free tier with no database, auth service or paid API.
+The entire workspace runs on Vercel's free tier with no paid services. It works without a database, and can optionally use a free Neon Postgres database for real persistence — see [Database setup](docs/DB_SETUP.md).
 
 ## Screens
 
@@ -65,6 +65,7 @@ Cross-cutting details: command palette on <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>K<
 | Forms | React Hook Form 7, Zod 4, `@hookform/resolvers` |
 | Client state | Zustand 5 with `persist` + `skipHydration` |
 | Data fetching | SWR 2.5 for cached reads; Axios 1.21 for validated POST mutations |
+| Database | Optional Neon Postgres with Drizzle ORM; deterministic generator fallback |
 | UI | shadcn-style copy-in Radix/Tailwind primitives, cmdk, Sonner, Lucide icons, next-themes |
 | Charts | Recharts 3, loaded lazily |
 | Editor | Tiptap 3 + DOMPurify, loaded on demand |
@@ -105,7 +106,7 @@ The dashboard refreshes hourly; the order book and detail records are cached dai
 
 **State ownership.** SWR owns the read path, Axios owns the validated POST mutation, and Zustand owns drafts, browser-created POs, edited notes and table density with `skipHydration` and explicit rehydration flags to avoid SSR mismatches. Filters live in the URL so a copied queue link restores the view.
 
-**Why local POs are browser-only.** The API validates submissions and returns the created record, but it does not write to a database. Created POs are clearly labelled and stored in `localStorage`; the API response includes `persisted: false`. This keeps the create flow fully demonstrable on free hosting without pretending there is a backend.
+**Persistence modes.** With no `DATABASE_URL`, the API validates submissions and returns the created record, but writes it to `localStorage` with `persisted: false`. When a free Neon `DATABASE_URL` is configured, the same route inserts into Postgres, revalidates the `orders` and `order-<id>` cache tags and returns `persisted: true`. Drafts, table density and theme stay in `localStorage` either way. Setup is documented in [`docs/DB_SETUP.md`](docs/DB_SETUP.md).
 
 ## The 5,000-row grid
 
@@ -179,7 +180,7 @@ Verified on 16 Nov 2026:
 - `npm run build` — production build passes (28 route entries, including static order and invoice samples)
 - `npx tsc --noEmit` — clean
 - `npx eslint src` — clean
-- `npm test` — 11 Vitest tests across data builders, materials, schema rules, CSV safety and invoice wording
+- `npm test` — 12 Vitest tests across data builders, materials, schema rules, CSV safety, DB mappers and invoice wording
 - Production QA — creating a local PO, draft autosave/restore, local detail after reload, local invoice print, no console errors
 - Print QA — sample invoice is exactly two A4 pages
 - Lighthouse desktop — 100/100/100/100 on all eight reviewed routes, with no failed accessibility audits
@@ -191,8 +192,8 @@ Accessibility work includes a skip link, labelled landmarks, semantic data-grid 
 ## Demo boundaries
 
 - All manufacturer, buyer, supplier, purchase order, invoice, barcode and performance data is **synthetic**. Weft is a portfolio project; nothing here is a real commercial document.
-- There is no database, authentication, multi-user behaviour or real mutation. Status changes and bulk actions that look destructive are labelled demo-only or disabled.
-- Browser-created POs and notes live in `localStorage` for that browser only. Clearing site storage loses them; there is no cross-device continuity.
+- There is no authentication, multi-user behaviour or mutation of the generated demo rows. Status changes and bulk actions that look destructive are labelled demo-only or disabled.
+- With a database configured, newly created POs are real Postgres rows served to every visitor. Without one they live in `localStorage` only. Drafts, notes, table density and theme remain per-browser in Phase 1.
 - The interface is desktop-first. Compact 28–32 px controls suit mouse and keyboard work but are below the 44 px touch-target recommendation. Mobile gets a slide-over nav and horizontally scrollable tables rather than a separate operator app.
 - No field INP, user count or synthetic benchmark is claimed. Lighthouse figures are explicitly local lab measurements.
 
@@ -218,9 +219,29 @@ Open [http://localhost:3000](http://localhost:3000). The demo snapshot is fixed 
 
 Optional environment variable: `NEXT_PUBLIC_SITE_URL` sets the canonical metadata URL. On Vercel, `VERCEL_PROJECT_PRODUCTION_URL` is used automatically when it is absent.
 
+## Database (optional)
+
+Without configuration the app uses the deterministic generator and browser-local POs. To enable real persistence on a free tier, follow [`docs/DB_SETUP.md`](docs/DB_SETUP.md). Short version:
+
+```bash
+# 1. Create .env.local with DATABASE_URL from Neon (never commit it)
+# 2. Create the tables and seed the same 5,000 generated orders
+npm run db:push
+npm run db:seed
+```
+
+| Command | Purpose |
+| --- | --- |
+| `npm run db:push` | Apply the Drizzle schema to Neon |
+| `npm run db:seed` | Insert 5,000 POs, details and 12 materials (idempotent) |
+| `npm run db:generate` | Generate SQL migrations after a schema change |
+| `npm run db:studio` | Open Drizzle Studio |
+
+Add the same `DATABASE_URL` to Vercel's environment variables and redeploy. Reads stay behind `"use cache"` + `cacheTag`, and writes call `revalidateTag`.
+
 ## Deploying
 
-The project has no database, secrets or paid dependencies. Vercel's Hobby tier is sufficient.
+The app needs no paid services. A database is optional; add a free Neon URL to enable persistence (see [Database setup](docs/DB_SETUP.md)). No secrets are committed.
 
 ```bash
 npx vercel@latest login
@@ -258,17 +279,20 @@ src/
     materials/ shell/ ui/   table, navigation, primitives
   lib/
     data/                   seeded generator, materials, server cache helpers
+    db/                     Drizzle schema, client, mappers, seed script
     stores/                 Zustand stores (drafts, local POs, notes, prefs)
     validation/             shared Zod schema
     __tests__/              Vitest suite
+drizzle/                    generated SQL migrations
 docs/
   screenshots/              README assets
   weft-sample-invoice.pdf   verified two-page A4 output
+  DB_SETUP.md               free Neon database setup
 ```
 
 ## If this became a real product
 
-1. Postgres with Drizzle or Prisma behind the current read interface, plus migrations and seed scripts.
+1. Hosted Postgres is already wired behind the cached repository; next is auth, migrations in CI and environment branches.
 2. Auth and role boundaries for merchandiser, factory and buyer views.
 3. Server actions or route handlers for status changes with optimistic UI, concurrency control and an audit trail.
 4. Server-side pagination, indexed search and permission-scoped queries.
