@@ -74,7 +74,7 @@ This file tracks the work from a portfolio demo toward an enterprise-grade multi
 
 ---
 
-## Milestone 4 — Inventory and MRP depth `[x]` — `PENDING_DEPLOY`
+## Milestone 4 — Inventory and MRP depth `[x]` — `972d556`
 
 **Goal:** make the ERP domain behave coherently across pages.
 
