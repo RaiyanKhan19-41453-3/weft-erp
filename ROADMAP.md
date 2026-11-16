@@ -104,7 +104,7 @@ This file tracks the work from a portfolio demo toward an enterprise-grade multi
 
 ---
 
-## Milestone 6 — Operational excellence `[~]`
+## Milestone 6 — Operational excellence `[~]` — `6ef0f61`
 
 **Goal:** debug and operate the app without guessing.
 
