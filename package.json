@@ -60,6 +60,9 @@
     "zod": "4.6.7",
     "zustand": "5.1.0"
   },
+  "overrides": {
+    "esbuild": "^0.25.12"
+  },
   "devDependencies": {
     "@playwright/test": "^1.65.1",
     "@tailwindcss/turbopack": "4.3.3",

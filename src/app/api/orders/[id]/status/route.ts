@@ -4,8 +4,10 @@ import { z } from "zod";
 import { getViewer, hasPermission } from "@/lib/auth-guards";
 import { ORDER_STATUSES } from "@/lib/constants";
 import { getDb, hasDatabase } from "@/lib/db";
-import { rowToOrder } from "@/lib/db/mappers";
-import { orderDetails, orderEvents, purchaseOrders } from "@/lib/db/schema";
+import { orderApprovals, purchaseOrders } from "@/lib/db/schema";
+import { applyTransition } from "@/lib/workflow-db";
+import { checkTransition, requiresApproval } from "@/lib/workflow";
+import type { WeftRole } from "@/lib/permissions";
 
 const statusSchema = z.object({
   status: z.enum(ORDER_STATUSES),
@@ -22,12 +24,8 @@ export async function POST(request: Request, { params }: Context) {
   if (!hasPermission(viewer, "order", "status")) {
     return Response.json({ error: "Your role cannot change order status." }, { status: 403 });
   }
-
   if (!hasDatabase()) {
-    return Response.json(
-      { error: "Status changes need a configured database." },
-      { status: 503 },
-    );
+    return Response.json({ error: "Status changes need a configured database." }, { status: 503 });
   }
 
   const { id } = await params;
@@ -43,60 +41,73 @@ export async function POST(request: Request, { params }: Context) {
     return Response.json({ error: "Invalid status update." }, { status: 422 });
   }
 
-  try {
-    const db = getDb();
-    const [current] = await db
-      .select()
-      .from(purchaseOrders)
-      .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.organizationId, viewer.orgId)))
-      .limit(1);
+  const db = getDb();
+  const [current] = await db
+    .select()
+    .from(purchaseOrders)
+    .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.organizationId, viewer.orgId)))
+    .limit(1);
 
-    if (!current) {
-      return Response.json({ error: "Purchase order not found." }, { status: 404 });
-    }
-
-    if (current.status === parsed.data.status) {
-      return Response.json({ order: rowToOrder(current), unchanged: true });
-    }
-
-    const [updated] = await db
-      .update(purchaseOrders)
-      .set({ status: parsed.data.status })
-      .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.organizationId, viewer.orgId)))
-      .returning();
-
-    const [detail] = await db
-      .select()
-      .from(orderDetails)
-      .where(and(eq(orderDetails.orderId, id), eq(orderDetails.organizationId, viewer.orgId)))
-      .limit(1);
-
-    if (detail) {
-      await db
-        .update(orderDetails)
-        .set({ detail: { ...detail.detail, status: parsed.data.status } })
-        .where(and(eq(orderDetails.orderId, id), eq(orderDetails.organizationId, viewer.orgId)));
-    }
-
-    await db.insert(orderEvents).values({
-      id: crypto.randomUUID(),
-      organizationId: viewer.orgId,
-      orderId: id,
-      fromStatus: current.status,
-      toStatus: parsed.data.status,
-      note: parsed.data.note ?? null,
-      actor: "demo-operator",
-      createdAt: new Date().toISOString(),
-    });
-
-    revalidateTag("orders", "max");
-    revalidateTag(`orders-${viewer.orgId}`, "max");
-    revalidateTag(`order-${id}`, "max");
-    revalidateTag(`order-events-${id}`, "max");
-
-    return Response.json({ order: rowToOrder(updated!) });
-  } catch (error) {
-    console.error("Status update failed.", error);
-    return Response.json({ error: "The status could not be updated." }, { status: 503 });
+  if (!current) {
+    return Response.json({ error: "Purchase order not found." }, { status: 404 });
   }
+  if (current.status === parsed.data.status) {
+    return Response.json({ order: current, unchanged: true });
+  }
+
+  const role = viewer.role as WeftRole;
+  const check = checkTransition(current.status, parsed.data.status, role);
+  if (!check.ok) {
+    return Response.json({ error: check.reason }, { status: 422 });
+  }
+
+  const actor = viewer.email ?? viewer.userId ?? "unknown";
+
+  if (requiresApproval(parsed.data.status, role)) {
+    const [existing] = await db
+      .select({ id: orderApprovals.id })
+      .from(orderApprovals)
+      .where(
+        and(
+          eq(orderApprovals.orderId, id),
+          eq(orderApprovals.organizationId, viewer.orgId),
+          eq(orderApprovals.requestedStatus, parsed.data.status),
+          eq(orderApprovals.decision, "pending"),
+        ),
+      )
+      .limit(1);
+
+    if (!existing) {
+      await db.insert(orderApprovals).values({
+        id: crypto.randomUUID(),
+        organizationId: viewer.orgId,
+        orderId: id,
+        requestedStatus: parsed.data.status,
+        requestedBy: actor,
+        requestedAt: new Date().toISOString(),
+        note: parsed.data.note ?? null,
+      });
+      revalidateTag(`approvals-${id}`, "max");
+    }
+
+    return Response.json(
+      { approvalRequired: true, message: "Approval requested from an owner or admin." },
+      { status: 202 },
+    );
+  }
+
+  const result = await applyTransition({
+    organizationId: viewer.orgId,
+    orderId: id,
+    from: current.status,
+    to: parsed.data.status,
+    role,
+    actor,
+    note: parsed.data.note ?? null,
+  });
+
+  if (!result.ok) {
+    return Response.json({ error: result.reason }, { status: result.status ?? 422 });
+  }
+  return Response.json({ order: result.order });
 }

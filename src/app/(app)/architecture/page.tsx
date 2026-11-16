@@ -45,13 +45,13 @@ const SECTIONS = [
 
 const BUNDLE_ROWS = [
   { route: "/", label: "Operations overview", total: "268.0", delta: "2.3" },
-  { route: "/analytics", label: "Analytics", total: "268.5", delta: "2.8" },
+  { route: "/analytics", label: "Analytics", total: "268.4", delta: "2.8" },
   { route: "/architecture", label: "Architecture case study", total: "269.9", delta: "4.2" },
   { route: "/materials", label: "Materials", total: "272.5", delta: "6.8" },
   { route: "/orders/[id]/invoice", label: "Invoice", total: "275.7", delta: "10.0" },
-  { route: "/orders/[id]", label: "Order detail", total: "291.6", delta: "26.0" },
-  { route: "/orders", label: "Purchase orders", total: "313.2", delta: "47.6" },
-  { route: "/orders/new", label: "New purchase order", total: "347.6", delta: "82.0" },
+  { route: "/orders/[id]", label: "Order detail", total: "292.8", delta: "27.2" },
+  { route: "/orders", label: "Purchase orders", total: "313.2", delta: "47.5" },
+  { route: "/orders/new", label: "New purchase order", total: "347.6", delta: "81.9" },
 ] as const;
 
 const BOUNDARIES = [
@@ -383,9 +383,9 @@ export async function getOrderDetail(id: string) {
               configured, created POs are real rows and the API returns{" "}
               <Code>persisted: true</Code>. Without <Code>DATABASE_URL</Code>, the same validated
               payload falls back to <Code>localStorage</Code> and returns{" "}
-              <Code>persisted: false</Code>. Status changes are real optimistic DB writes with an
-              audit trail, and auth with organization roles now scopes every read and write.
-              Concurrency control and enterprise SSO are still out of scope.
+              <Code>persisted: false</Code>. Status changes are governed transitions with approvals
+              and a before/after audit diff; auth with organization roles scopes every read and
+              write. Concurrency control and enterprise SSO are still out of scope.
             </Callout>
           </Section>
 
@@ -447,7 +447,7 @@ const virtualizer = useVirtualizer({
                 items={[
                   "Server-side pagination and indexed search beyond roughly 50k rows.",
                   "Server-side sort/filter for multi-tenant data and permissions.",
-                  "Concurrency control and role checks around the existing status mutation.",
+                  "Concurrency control and object-storage-backed attachments around the existing governed workflow.",
                   "Keyboard grid navigation and a proper column-resize model.",
                   "Automated performance budget checks in CI, not just one measured build.",
                 ]}
@@ -677,6 +677,7 @@ const virtualizer = useVirtualizer({
                 ["Honest demo actions", "Bulk actions and requisitions say they are demo-only; no fake success claims."],
                 ["Automated flows", "Playwright checks the grid, form, print, prefill, auth and tenant flows."],
                 ["Tenant boundaries", "Every read and write is scoped by organization_id and checked against a role."],
+                ["Governed workflow", "Status transitions are validated, approval-gated and recorded with a diff."],
               ].map(([title, body]) => (
                 <div key={title} className="rounded-lg border border-line bg-surface px-3.5 py-3">
                   <p className="flex items-center gap-1.5 text-[11px] font-semibold">
@@ -763,7 +764,7 @@ const virtualizer = useVirtualizer({
                 items={[
                   "Auth and environment branches around the Drizzle repository already in place.",
                   "Auth and role boundaries for merchandiser, factory and buyer views.",
-                  "Concurrency control and role checks around the existing optimistic status mutation.",
+                  "Concurrency control and object-storage-backed attachments for the governed workflow.",
                   "Server-side pagination, indexed search and permission-scoped queries.",
                   "Add visual regression and real-user INP collection beside the existing Playwright suite.",
                 ]}

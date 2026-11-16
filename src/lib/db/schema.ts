@@ -68,12 +68,34 @@ export const orderEvents = pgTable(
     toStatus: text("to_status").$type<OrderStatus>().notNull(),
     note: text("note"),
     actor: text("actor").notNull().default("demo-operator"),
+    diff: jsonb("diff"),
     createdAt: text("created_at").notNull(),
   },
   (table) => [index("order_events_order_idx").on(table.orderId)],
 );
 
 export type OrderEvent = typeof orderEvents.$inferSelect;
+
+export const orderApprovals = pgTable(
+  "order_approvals",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id").notNull().default(DEMO_ORG_ID),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => purchaseOrders.id, { onDelete: "cascade" }),
+    requestedStatus: text("requested_status").$type<OrderStatus>().notNull(),
+    requestedBy: text("requested_by").notNull(),
+    requestedAt: text("requested_at").notNull(),
+    decidedBy: text("decided_by"),
+    decidedAt: text("decided_at"),
+    decision: text("decision").$type<"pending" | "approved" | "rejected">().notNull().default("pending"),
+    note: text("note"),
+  },
+  (table) => [index("order_approvals_order_idx").on(table.orderId)],
+);
+
+export type OrderApproval = typeof orderApprovals.$inferSelect;
 
 export const materials = pgTable("materials", {
   organizationId: text("organization_id").notNull().default(DEMO_ORG_ID),

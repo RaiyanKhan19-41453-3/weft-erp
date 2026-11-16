@@ -25,6 +25,29 @@ test.describe("auth and tenant scoping", () => {
     await expect(page.getByLabel("Update order status")).toBeVisible();
   });
 
+  test("workflow rejects illegal transitions", async ({ page }) => {
+    const base = "http://127.0.0.1:3100";
+    await page.goto("/sign-in");
+    await page.locator("#email").fill("demo@weft.local");
+    await page.locator("#password").fill("demo1234");
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page).toHaveURL(/\/$/, { timeout: 15000 });
+
+    const list = await (await page.request.get(`${base}/api/orders`)).json();
+    const ready = list.orders.find((order: { status: string }) => order.status === "ready");
+    expect(ready).toBeTruthy();
+
+    const legal = await page.request.post(`${base}/api/orders/${ready.id}/status`, {
+      data: { status: "shipped", note: "E2E legal transition" },
+    });
+    expect(legal.status()).toBe(200);
+
+    const illegal = await page.request.post(`${base}/api/orders/${ready.id}/status`, {
+      data: { status: "draft" },
+    });
+    expect(illegal.status()).toBe(422);
+  });
+
   test("a new workspace cannot see demo orders", async ({ page }) => {
     const base = "http://127.0.0.1:3100";
     const email = `tenant${Date.now()}@example.test`;

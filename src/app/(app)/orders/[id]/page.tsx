@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { getOrderDetail, getOrderEvents, getOrderIds } from "@/lib/data/server";
+import { getOrderApprovals, getOrderDetail, getOrderEvents, getOrderIds } from "@/lib/data/server";
 import { getViewer } from "@/lib/auth-guards";
+import type { WeftRole } from "@/lib/permissions";
 import { OrderDetailView } from "@/components/orders/order-detail-view";
 import { LocalOrderDetail } from "@/components/orders/local-order-detail";
 import { OrderDetailSkeleton } from "@/components/orders/detail-skeleton";
@@ -31,9 +32,10 @@ export default function OrderPage({ params }: { params: Params }) {
 async function OrderContent({ params }: { params: Params }) {
   const { id } = await params;
   const viewer = await getViewer();
-  const [order, events] = await Promise.all([
+  const [order, events, approvals] = await Promise.all([
     getOrderDetail(id, viewer.orgId),
     getOrderEvents(id, viewer.orgId),
+    getOrderApprovals(id, viewer.orgId),
   ]);
 
   if (order) {
@@ -41,7 +43,10 @@ async function OrderContent({ params }: { params: Params }) {
       <OrderDetailView
         order={order}
         events={events}
+        approvals={approvals}
+        canDecideApprovals={viewer.role === "owner" || viewer.role === "admin"}
         canChangeStatus={viewer.role === "owner" || viewer.role === "admin" || viewer.role === "factory"}
+        role={viewer.role as WeftRole | "public"}
       />
     );
   }

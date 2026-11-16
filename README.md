@@ -45,7 +45,7 @@ The entire workspace runs on Vercel's free tier with no paid services. It is con
 | `/` | Server-rendered KPI grid, 12-week throughput chart, shipment-risk queue, buyer concentration and a five-SKU low-stock callout. |
 | `/orders` | 5,000 POs in a TanStack Table + Virtual grid. Sort, global search, stage/buyer/risk filters, column visibility, row selection, density preference, URL-addressable filters and CSV export. |
 | `/orders/new` | Three-step React Hook Form wizard with a shared Zod schema, per-step validation, API submission and a recoverable Zustand draft. |
-| `/orders/[id]` | Order summary, size allocation, line items, production timeline, optimistic status changes with an audit trail, lazy Tiptap notes and shipment/buyer rail. |
+| `/orders/[id]` | Order summary, size allocation, line items, production timeline, governed status transitions with approvals and audit diff, lazy Tiptap notes and shipment/buyer rail. |
 | `/orders/[id]/invoice` | Two-page A4 commercial invoice and packing list with totals, amount in words, carton allocation and a generated Code 39 barcode. |
 | `/materials` | Twelve fabric/trim SKUs with coverage weeks, reorder states, inbound supply and suggested buys. |
 | `/analytics` | Factory output, on-time trend, capacity utilisation (Unit 04 intentionally over capacity), defect causes, buyer scorecards and CSV export. |
@@ -146,13 +146,13 @@ These are **initial route JS** figures from the production build, summed from ea
 | Route | Initial JS, gzip | Over shared shell |
 | --- | ---: | ---: |
 | `/` | 268.0 KB | +2.3 KB |
-| `/analytics` | 268.5 KB | +2.8 KB |
+| `/analytics` | 268.4 KB | +2.8 KB |
 | `/architecture` | 269.9 KB | +4.2 KB |
 | `/materials` | 272.5 KB | +6.8 KB |
 | `/orders/[id]/invoice` | 275.7 KB | +10.0 KB |
-| `/orders/[id]` | 291.6 KB | +26.0 KB |
-| `/orders` | 313.2 KB | +47.6 KB |
-| `/orders/new` | 347.6 KB | +82.0 KB |
+| `/orders/[id]` | 292.8 KB | +27.2 KB |
+| `/orders` | 313.2 KB | +47.5 KB |
+| `/orders/new` | 347.6 KB | +81.9 KB |
 
 The shared baseline is about 266 KB gzip: React 19, the App Router runtime, the persistent shell, Radix primitives and the Better Auth session client. The shell is interactive on every page, so this is a deliberate cost; hiding it behind a client-only boundary would trade a smaller first load for a layout flash on every navigation. The dashboard adds only 2.3 KB because its KPI grid, risk table and buyer list are Server Components and its charts are lazy.
 
@@ -191,11 +191,11 @@ Verified on 16 Nov 2026:
 - `npm run build` — production build passes (28 route entries, including static order and invoice samples)
 - `npx tsc --noEmit` — clean
 - `npx eslint src` — clean
-- `npm test` — 12 Vitest tests across data builders, materials, schema rules, CSV safety, DB mappers and invoice wording
+- `npm test` — 15 Vitest tests across data builders, materials, schema rules, workflow transitions, CSV safety, DB mappers and invoice wording
 - Production QA — creating a local PO, draft autosave/restore, local detail after reload, local invoice print, no console errors
 - Print QA — sample invoice is exactly two A4 pages
 - Lighthouse desktop — accessibility, best practices and SEO 100 on all eight routes; performance 95–100 after tenant-aware server reads, with no failed accessibility audits
-- Playwright — 7 end-to-end tests covering dashboard, command palette, Web Vitals panel, the 5,000-row explorer, PO draft/create/print, materials→PO prefill, auth and tenant isolation
+- Playwright — 8 end-to-end tests covering dashboard, command palette, Web Vitals panel, the 5,000-row explorer, PO draft/create/print, materials→PO prefill, auth, tenant isolation and workflow transitions
 - Browser Web Vitals — `web-vitals` reports LCP, INP, CLS, FCP and TTFB into a case-study panel using locally stored values only
 
 The Vitest suite covers the deterministic order book, dashboard/analytics consistency, size allocation, materials thresholds, new-order validation, CSV safety, DB mappers and amount-in-words formatting. Playwright covers the critical UI flows on every CI run. Visual regression and field INP collection are still out of scope.
@@ -286,7 +286,8 @@ src/
     (auth)/                 sign-in and sign-up pages
     api/auth/[...all]/      Better Auth handler
     api/orders/route.ts     cached GET + validated POST
-    api/orders/[id]/status/ optimistic status mutations + audit trail
+    api/orders/[id]/status/ governed transitions + audit diff
+    api/orders/[id]/approvals/ approval decisions by owners/admins
     api/barcode/route.ts    server-generated Code 39 SVG
   components/
     orders/                 explorer, columns, toolbar, form, detail,

@@ -4,7 +4,9 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { STATUS_META, STATUS_ORDER, type Order, type OrderStatus } from "@/lib/constants";
+import { STATUS_META, type Order, type OrderStatus } from "@/lib/constants";
+import type { WeftRole } from "@/lib/permissions";
+import { nextStatuses } from "@/lib/workflow";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -14,10 +16,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export function StatusControl({ order, enabled }: { order: Order; enabled: boolean }) {
+export function StatusControl({
+  order,
+  enabled,
+  role,
+}: {
+  order: Order;
+  enabled: boolean;
+  role: WeftRole | "public";
+}) {
   const router = useRouter();
   const [optimisticStatus, setOptimisticStatus] = React.useOptimistic<OrderStatus>(order.status);
   const [pending, startTransition] = React.useTransition();
+  const allowed = role === "public" ? [] : nextStatuses(order.status, role);
 
   if (!enabled || order.isLocal) return null;
 
@@ -33,7 +44,17 @@ export function StatusControl({ order, enabled }: { order: Order; enabled: boole
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status: next, note: "Changed from the order detail view" }),
         });
-        const data = (await response.json()) as { error?: string };
+        const data = (await response.json()) as {
+          error?: string;
+          message?: string;
+          approvalRequired?: boolean;
+        };
+        if (response.status === 202) {
+          setOptimisticStatus(previous);
+          toast.success("Approval requested", { description: data.message });
+          router.refresh();
+          return;
+        }
         if (!response.ok) {
           setOptimisticStatus(previous);
           toast.error(data.error ?? "The status could not be updated.");
@@ -50,12 +71,12 @@ export function StatusControl({ order, enabled }: { order: Order; enabled: boole
 
   return (
     <div className="flex items-center gap-2" aria-busy={pending}>
-      <Select value={optimisticStatus} onValueChange={(value) => update(value as OrderStatus)} disabled={pending}>
+      <Select value={optimisticStatus} onValueChange={(value) => update(value as OrderStatus)} disabled={pending || allowed.length === 0}>
         <SelectTrigger className="h-8 w-[158px] text-[11px]" aria-label="Update order status">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {STATUS_ORDER.map((status) => (
+          {allowed.map((status) => (
             <SelectItem key={status} value={status} className="text-[11px]">
               {STATUS_META[status].label}
             </SelectItem>
@@ -63,19 +84,17 @@ export function StatusControl({ order, enabled }: { order: Order; enabled: boole
         </SelectContent>
       </Select>
       {pending ? <Loader2 className="size-3.5 animate-spin text-muted" aria-hidden /> : null}
-      <Button
-        variant="outline"
-        size="sm"
-        className="hidden h-8 md:inline-flex"
-        disabled={optimisticStatus === "shipped" || pending}
-        onClick={() => {
-          const index = STATUS_ORDER.indexOf(optimisticStatus);
-          const next = STATUS_ORDER[Math.min(index + 1, STATUS_ORDER.length - 1)];
-          if (next) update(next);
-        }}
-      >
-        Advance
-      </Button>
+      {allowed[0] ? (
+        <Button
+          variant="outline"
+          size="sm"
+          className="hidden h-8 md:inline-flex"
+          disabled={pending}
+          onClick={() => update(allowed[0]!)}
+        >
+          Advance
+        </Button>
+      ) : null}
     </div>
   );
 }

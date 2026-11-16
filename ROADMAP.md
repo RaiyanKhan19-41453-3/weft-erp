@@ -45,18 +45,18 @@ This file tracks the work from a portfolio demo toward an enterprise-grade multi
 
 ---
 
-## Milestone 2 — Real workflow state machine `[ ]`
+## Milestone 2 — Real workflow state machine `[~]`
 
 **Goal:** replace the free status dropdown with a governed, auditable lifecycle.
 
-- [ ] Define allowed transitions and guards
-- [ ] Reject illegal transitions server-side
-- [ ] Approval records with approver, timestamp and comment
-- [ ] Immutable audit events with before/after diff
-- [ ] Notifications on transition (email or in-app)
-- [ ] Attachments via Neon Object Storage or Vercel Blob
-- [ ] UI for pending approvals and rejection reasons
-- [ ] E2E test for legal and illegal transitions
+- [x] Define allowed transitions and guards
+- [x] Reject illegal transitions server-side
+- [x] Approval records with approver, timestamp and comment
+- [x] Immutable audit events with before/after diff
+- [x] Notifications on transition (in-app toasts)
+- [ ] Attachments via Neon Object Storage or Vercel Blob — needs object-storage credentials
+- [x] UI for pending approvals and rejection reasons
+- [x] E2E test for legal and illegal transitions
 
 ---
 

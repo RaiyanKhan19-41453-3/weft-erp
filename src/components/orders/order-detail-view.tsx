@@ -63,7 +63,9 @@ import { Progress, Spinner } from "@/components/ui/misc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LocalBadge, OrderStatusBadge, PriorityBadge } from "@/components/orders/status-badge";
 import { StatusControl } from "@/components/orders/status-control";
-import type { OrderEvent } from "@/lib/db/schema";
+import { ApprovalPanel } from "@/components/orders/approval-panel";
+import type { OrderApproval, OrderEvent } from "@/lib/db/schema";
+import type { WeftRole } from "@/lib/permissions";
 
 const NotesEditorDialog = dynamic(
   () => import("@/components/orders/notes-editor").then((module) => module.NotesEditorDialog),
@@ -95,11 +97,17 @@ function NotesEditorLoading() {
 export function OrderDetailView({
   order,
   events = [],
+  approvals = [],
   canChangeStatus = false,
+  canDecideApprovals = false,
+  role = "public",
 }: {
   order: OrderDetail;
   events?: OrderEvent[];
+  approvals?: OrderApproval[];
   canChangeStatus?: boolean;
+  canDecideApprovals?: boolean;
+  role?: WeftRole | "public";
 }) {
   const router = useRouter();
   const [notesOpen, setNotesOpen] = React.useState(false);
@@ -174,7 +182,7 @@ export function OrderDetailView({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <StatusControl order={order} enabled={canChangeStatus} />
+            <StatusControl order={order} enabled={canChangeStatus} role={role} />
             <Button variant="outline" onClick={() => setNotesOpen(true)}>
               <Pencil />
               Edit notes
@@ -533,6 +541,11 @@ export function OrderDetailView({
                   </p>
                 )}
               </div>
+              <ApprovalPanel
+                orderId={order.id}
+                approvals={approvals}
+                canDecide={canDecideApprovals}
+              />
             </TabsContent>
 
             <TabsContent value="notes" className="p-4">

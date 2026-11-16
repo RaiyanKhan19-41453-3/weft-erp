@@ -13,9 +13,11 @@ import { getDb, hasDatabase } from "@/lib/db";
 import { rowToOrder } from "@/lib/db/mappers";
 import {
   materials as materialsTable,
+  orderApprovals,
   orderDetails,
   orderEvents,
   purchaseOrders,
+  type OrderApproval,
   type OrderEvent,
 } from "@/lib/db/schema";
 
@@ -96,6 +98,26 @@ export async function getOrderEvents(id: string, orgId = DEMO_ORG_ID): Promise<O
       .orderBy(orderEvents.createdAt);
   } catch (error) {
     console.error("Order event read failed.", error);
+    return [];
+  }
+}
+
+export async function getOrderApprovals(
+  id: string,
+  orgId = DEMO_ORG_ID,
+): Promise<OrderApproval[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(`approvals-${id}`, `orders-${orgId}`);
+  if (!hasDatabase()) return [];
+  try {
+    return await getDb()
+      .select()
+      .from(orderApprovals)
+      .where(and(eq(orderApprovals.orderId, id), eq(orderApprovals.organizationId, orgId)))
+      .orderBy(orderApprovals.requestedAt);
+  } catch (error) {
+    console.error("Approval read failed.", error);
     return [];
   }
 }
