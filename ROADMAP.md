@@ -89,7 +89,7 @@ This file tracks the work from a portfolio demo toward an enterprise-grade multi
 
 ---
 
-## Milestone 5 — Documents and integrations `[~]`
+## Milestone 5 — Documents and integrations `[~]` — `4ecb2b7`
 
 **Goal:** let other systems exchange data with Weft.
 
