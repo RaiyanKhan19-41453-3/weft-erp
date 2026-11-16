@@ -26,7 +26,7 @@ This file tracks the work from a portfolio demo toward an enterprise-grade multi
 
 ---
 
-## Milestone 1 — Identity, tenancy and permissions `[x]` — `PENDING_DEPLOY`
+## Milestone 1 — Identity, tenancy and permissions `[x]` — `10999c0`
 
 **Goal:** a user signs in, belongs to one or more organizations, and can only see and mutate data allowed by their role.
 
