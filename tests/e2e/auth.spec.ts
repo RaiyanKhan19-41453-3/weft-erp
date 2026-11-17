@@ -48,6 +48,23 @@ test.describe("auth and tenant scoping", () => {
     expect(illegal.status()).toBe(422);
   });
 
+  test("signing out redirects to the sign-in page and clears the session", async ({ page }) => {
+    const base = "http://127.0.0.1:3100";
+    await page.goto("/sign-in");
+    await page.locator("#email").fill("demo@weft.local");
+    await page.locator("#password").fill("demo1234");
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page).toHaveURL(/\/$/, { timeout: 15000 });
+
+    await page.locator("header button").last().click();
+    await page.getByRole("menuitem", { name: "Sign out" }).click();
+    await expect(page).toHaveURL(/\/sign-in$/, { timeout: 15000 });
+
+    const session = await page.request.get(`${base}/api/auth/get-session`);
+    const data = await session.json();
+    expect(data).toBeNull();
+  });
+
   test("a new workspace cannot see demo orders", async ({ page }) => {
     const base = "http://127.0.0.1:3100";
     const email = `tenant${Date.now()}@example.test`;

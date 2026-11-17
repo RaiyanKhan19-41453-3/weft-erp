@@ -185,6 +185,12 @@ export function Topbar() {
           </PopoverContent>
         </Popover>
 
+        {session ? null : (
+          <Button asChild variant="outline" size="sm" className="hidden h-8 text-[11px] sm:inline-flex">
+            <Link href="/sign-in">Sign in</Link>
+          </Button>
+        )}
+
         <ThemeToggle />
 
         <span className="mx-1 hidden h-5 w-px bg-line sm:block" />
@@ -243,8 +249,15 @@ export function Topbar() {
             <DropdownMenuSeparator />
             {session ? (
               <DropdownMenuItem
-                onSelect={() => {
-                  void authClient.signOut().then(() => router.push("/"));
+                onSelect={async () => {
+                  try {
+                    await authClient.signOut();
+                    toast.success("Signed out");
+                    router.push("/sign-in");
+                    router.refresh();
+                  } catch {
+                    toast.error("Could not sign out. Try again.");
+                  }
                 }}
               >
                 <LogOut />
