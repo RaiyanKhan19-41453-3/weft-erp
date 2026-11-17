@@ -196,11 +196,11 @@ export function Topbar() {
               className="flex h-8 items-center gap-1.5 rounded-control px-1 text-left outline-none transition-colors hover:bg-sunken focus-visible:ring-2 focus-visible:ring-brand/40"
             >
               <Avatar
-                name={session?.user?.name ?? "Demo Operator"}
+                name={session?.user?.name ?? "Public demo"}
                 className="size-7 bg-brand-soft text-[9px] text-brand-ink dark:bg-brand/15 dark:text-brand"
               />
               <span className="hidden text-[12px] font-medium md:block">
-                {session?.user?.name ?? "Demo operator"}
+                {session?.user?.name ?? "Public demo"}
               </span>
               <ChevronDown className="hidden size-3.5 text-muted md:block" />
             </button>
