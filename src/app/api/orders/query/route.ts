@@ -20,9 +20,8 @@ export async function GET(request: Request) {
   if (!(await allowRequest(request, "orders-query", 120))) {
     return Response.json({ error: "Too many requests." }, { status: 429 });
   }
-  const sessionViewer = await getViewer();
-  const viewer = sessionViewer.authenticated ? sessionViewer : await resolveApiViewer(request);
-  if (!viewer) return Response.json({ error: "Sign in or provide an API key." }, { status: 401 });
+  const apiViewer = await resolveApiViewer(request);
+  const viewer = apiViewer ?? (await getViewer());
   const { searchParams } = new URL(request.url);
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
   const pageSize = Math.min(100, Math.max(10, Number(searchParams.get("pageSize")) || 50));

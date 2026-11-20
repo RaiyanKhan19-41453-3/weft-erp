@@ -15,6 +15,12 @@ test("dashboard renders and command palette opens", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test("orders route defaults to server-driven paging", async ({ page }) => {
+  await page.goto("/orders");
+  await expect(page.getByText("Server-driven order query")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Client explorer" })).toBeVisible();
+});
+
 test("architecture page shows browser vitals", async ({ page }) => {
   await page.goto("/architecture");
   await expect(page.getByText("Measured in this browser")).toBeVisible();

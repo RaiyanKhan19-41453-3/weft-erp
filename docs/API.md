@@ -14,7 +14,7 @@ The machine-readable spec is served at `/api/openapi`. All endpoints are scoped 
 | --- | --- | --- |
 | GET | `/api/orders` | Cached order list for the active tenant |
 | POST | `/api/orders` | Create a PO; accepts `Idempotency-Key` |
-| GET | `/api/orders/query` | Paged, sorted, filtered, full-text query; requires session or API key |
+| GET | `/api/orders/query` | Paged, sorted, filtered, full-text query; public demo read or tenant-scoped API key |
 | POST | `/api/orders/{id}/status` | Governed transition; 202 means approval requested |
 | POST | `/api/orders/{id}/invoices` | Create immutable invoice version |
 | GET | `/api/orders/{id}/pdf` | Two-page invoice + packing list PDF |

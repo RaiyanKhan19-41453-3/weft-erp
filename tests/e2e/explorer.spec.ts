@@ -4,7 +4,7 @@ test("order explorer filters 5,000 rows without a round trip", async ({ page }) 
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
 
-  await page.goto("/orders");
+  await page.goto("/orders/client");
   const count = page.getByTestId("result-count");
   await expect(count).toBeVisible();
   await expect(count).not.toHaveText("");

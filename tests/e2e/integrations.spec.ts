@@ -68,11 +68,13 @@ test("API keys authenticate the query endpoint", async ({ page }) => {
   expect(created.status()).toBe(201);
   const token = (await created.json()).token;
 
-  const anon = await fetch(`${base}/api/orders/query?page=1&pageSize=10`);
-  expect(anon.status).toBe(401);
+  const publicRead = await fetch(`${base}/api/orders/query?page=1&pageSize=10`);
+  expect(publicRead.status).toBe(200);
+  expect((await publicRead.json()).orders).toHaveLength(10);
 
   const withKey = await fetch(`${base}/api/orders/query?page=1&pageSize=10`, {
     headers: { "x-api-key": token },
   });
   expect(withKey.status).toBe(200);
+  expect((await withKey.json()).orders).toHaveLength(10);
 });

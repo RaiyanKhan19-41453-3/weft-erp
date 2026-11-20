@@ -43,8 +43,9 @@ The entire workspace runs on Vercel's free tier with no paid services. It is con
 | Route | What it demonstrates |
 | --- | --- |
 | `/` | Server-rendered KPI grid, 12-week throughput chart, shipment-risk queue, buyer concentration and a five-SKU low-stock callout. |
-| `/orders` | 5,000 POs in a TanStack Table + Virtual grid. Sort, global search, stage/buyer/risk filters, column visibility, row selection, density preference, URL-addressable filters and CSV export. |
-| `/orders/server` | Server-driven TanStack Table in manual mode: Postgres paging, sorting, stage/factory filters and full-text search with only 50 rows fetched at a time. |
+| `/orders` | Default server-driven order book: Postgres paging, sorting, stage/factory filters and full-text search; only 50 rows fetched at a time. |
+| `/orders/client` | The original fetch-all TanStack Table/Virtual case study with URL filters, column visibility, selection, density and CSV export. |
+| `/orders/server` | Alias for the server-driven route. |
 | `/orders/import` | CSV batch validation preview using the shared Zod schema before any write. |
 | `/orders/new` | Three-step React Hook Form wizard with a shared Zod schema, per-step validation, API submission and a recoverable Zustand draft. |
 | `/orders/[id]` | Order summary, size allocation, line items, exploded material demand, landed cost, production timeline, governed status transitions with approvals and audit diff, lazy Tiptap notes and shipment/buyer rail. |
@@ -138,7 +139,7 @@ Each style has a bill of materials (fabric, thread, label, carton and optional t
 
 ## Server-driven mode
 
-`/orders/server` queries Postgres directly through `/api/orders/query`. Paging, sorting, stage/factory filters and full-text search happen in SQL; the client receives one page of 50 rows at a time and still renders it with TanStack Virtual. Indexes cover tenant, status, factory, buyer, due date and a GIN full-text expression over PO number, buyer and style. CI enforces per-route gzip bundle budgets.
+The default `/orders` page queries Postgres directly through `/api/orders/query`. Paging, sorting, stage/factory filters and full-text search happen in SQL; the client receives one page of 50 rows at a time and still renders it with TanStack Virtual. Indexes cover tenant, status, factory, buyer, due date and a GIN full-text expression over PO number, buyer and style. `/orders/client` preserves the earlier fetch-all case study. CI enforces per-route gzip bundle budgets.
 
 ## Auth and roles
 
@@ -148,16 +149,15 @@ The seeded demo account is `demo@weft.local` / `demo1234`. Public visitors can b
 
 ## The 5,000-row grid
 
-`/orders` fetches the full synthetic dataset once, then lets TanStack Table handle sorting, global filtering, selection and column visibility. TanStack Virtual mounts only the visible window plus 12 rows of overscan, so roughly 40 row elements exist in the DOM at a time.
+The default `/orders` page queries Postgres through `/api/orders/query`. Paging, sorting, stage/factory filters and full-text search run in SQL; only 50 rows are fetched per request. TanStack Table runs in manual mode and TanStack Virtual mounts just the visible window, so roughly 40 row elements exist in the DOM at a time.
 
-- `useDeferredValue` keeps the search input responsive while the 5k-row filter catches up.
-- Base filters are memoized before TanStack's row model; column definitions are module-level.
+`/orders/client` preserves the earlier fetch-all case study: one SWR fetch, client-side sorting/filtering with `useDeferredValue`, column visibility, row selection, density preference and CSV export. It remains useful as a comparison, but it is no longer the default path because it ships the whole book to the browser.
+
+- Server mode uses indexes on tenant, status, factory, buyer, due date and a GIN full-text expression.
+- Search input is debounced before issuing a query.
 - Sticky header, fixed row heights and skeleton states prevent layout shift.
-- Density preference persists through Zustand with `skipHydration`.
-- The table exposes `role="table"`, `aria-rowcount`, `aria-rowindex` and `aria-selected` on virtualized rows.
+- The client explorer exposes `role="table"`, `aria-rowcount`, `aria-rowindex` and `aria-selected` on virtualized rows.
 - Bulk actions are explicitly demo-only; CSV export is real.
-
-This pattern is right for a free, read-only demo. A production version beyond roughly 50k rows would need server-side pagination, indexed search, permission-scoped queries and server-side sort/filter.
 
 ## Forms
 
@@ -173,14 +173,15 @@ These are **initial route JS** figures from the production build, summed from ea
 
 | Route | Initial JS, gzip | Over shared shell |
 | --- | ---: | ---: |
-| `/` | 268.0 KB | +2.3 KB |
-| `/analytics` | 268.4 KB | +2.8 KB |
-| `/architecture` | 269.9 KB | +4.2 KB |
-| `/materials` | 272.5 KB | +6.8 KB |
-| `/orders/[id]/invoice` | 275.7 KB | +10.0 KB |
-| `/orders/[id]` | 292.8 KB | +27.2 KB |
-| `/orders` | 313.2 KB | +47.5 KB |
-| `/orders/new` | 347.6 KB | +81.9 KB |
+| `/` | 268.6 KB | +2.3 KB |
+| `/analytics` | 269.1 KB | +2.8 KB |
+| `/architecture` | 270.5 KB | +4.2 KB |
+| `/materials` | 274.3 KB | +8.1 KB |
+| `/orders/[id]/invoice` | 276.7 KB | +10.4 KB |
+| `/orders/[id]` | 294.1 KB | +27.8 KB |
+| `/orders` | 297.1 KB | +30.8 KB |
+| `/orders/client` | 313.3 KB | +47.1 KB |
+| `/orders/new` | 348.3 KB | +82.0 KB |
 
 The shared baseline is about 266 KB gzip: React 19, the App Router runtime, the persistent shell, Radix primitives and the Better Auth session client. The shell is interactive on every page, so this is a deliberate cost; hiding it behind a client-only boundary would trade a smaller first load for a layout flash on every navigation. The dashboard adds only 2.3 KB because its KPI grid, risk table and buyer list are Server Components and its charts are lazy.
 

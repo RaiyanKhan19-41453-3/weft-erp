@@ -44,14 +44,15 @@ const SECTIONS = [
 ] as const;
 
 const BUNDLE_ROWS = [
-  { route: "/", label: "Operations overview", total: "268.0", delta: "2.3" },
-  { route: "/analytics", label: "Analytics", total: "268.4", delta: "2.8" },
-  { route: "/architecture", label: "Architecture case study", total: "269.9", delta: "4.2" },
-  { route: "/materials", label: "Materials", total: "272.5", delta: "6.8" },
-  { route: "/orders/[id]/invoice", label: "Invoice", total: "275.7", delta: "10.0" },
-  { route: "/orders/[id]", label: "Order detail", total: "292.8", delta: "27.2" },
-  { route: "/orders", label: "Purchase orders", total: "313.2", delta: "47.5" },
-  { route: "/orders/new", label: "New purchase order", total: "347.6", delta: "81.9" },
+  { route: "/", label: "Operations overview", total: "268.6", delta: "2.3" },
+  { route: "/analytics", label: "Analytics", total: "269.1", delta: "2.8" },
+  { route: "/architecture", label: "Architecture case study", total: "270.5", delta: "4.2" },
+  { route: "/materials", label: "Materials", total: "274.3", delta: "8.1" },
+  { route: "/orders/[id]/invoice", label: "Invoice", total: "276.7", delta: "10.4" },
+  { route: "/orders/[id]", label: "Order detail", total: "294.1", delta: "27.8" },
+  { route: "/orders", label: "Purchase orders", total: "297.1", delta: "30.8" },
+  { route: "/orders/client", label: "Client explorer", total: "313.3", delta: "47.1" },
+  { route: "/orders/new", label: "New purchase order", total: "348.3", delta: "82.0" },
 ] as const;
 
 const BOUNDARIES = [
@@ -398,56 +399,50 @@ export async function getOrderDetail(id: string) {
           >
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <MiniStat value="5,000" label="rows in dataset" />
+              <MiniStat value="50" label="rows per page" />
               <MiniStat value="~40" label="rows in DOM" />
-              <MiniStat value="48 KB" label="gzip incremental JS" />
-              <MiniStat value="0" label="per-filter round trips" />
+              <MiniStat value="SQL" label="filtering engine" />
             </div>
             <p className="mt-4 text-[12.5px] leading-6 text-muted">
-              The order book fetches the full synthetic dataset once with SWR, then lets TanStack
-              Table handle sorting, global filtering, row selection and column visibility. TanStack
-              Virtual mounts only the visible window plus 12 rows of overscan. The result is a table
-              that scrolls smoothly at 5,000 rows without giving up instant filtering.
+              The default order book queries Postgres through <Code>/api/orders/query</Code>.
+              Paging, sorting, stage/factory filters and full-text search run in SQL; only one page
+              of 50 rows crosses the network. TanStack Table runs in manual mode and TanStack Virtual
+              still mounts just the visible window. The original fetch-all client explorer is kept at{" "}
+              <Code>/orders/client</Code> as a documented case study, not as the default path.
             </p>
             <CodeBlock
-              title="src/components/orders/explorer.tsx (abridged)"
-              badge="client"
-              code={`const deferredSearch = useDeferredValue(search);
-
-const table = useReactTable({
-  data: baseFiltered,
-  columns: orderColumns,
-  state: { sorting, rowSelection, columnVisibility, globalFilter: deferredSearch },
-  getRowId: (row) => row.id,
-  globalFilterFn: globalFilter,
-  getCoreRowModel: getCoreRowModel(),
-  getSortedRowModel: getSortedRowModel(),
-  getFilteredRowModel: getFilteredRowModel(),
-});
-
-const virtualizer = useVirtualizer({
-  count: rows.length,
-  getScrollElement: () => scrollRef.current,
-  estimateSize: () => rowHeight,
-  overscan: 12,
-});`}
+              title="src/app/api/orders/query/route.ts (abridged)"
+              badge="server"
+              code={`const where = and(
+  eq(purchaseOrders.organizationId, viewer.orgId),
+  status ? eq(purchaseOrders.status, status) : undefined,
+  q ? sql\`to_tsvector(...) @@ plainto_tsquery('english', \${q})\` : undefined,
+);
+ 
+const [rows, count] = await Promise.all([
+  db.select().from(purchaseOrders).where(where)
+    .orderBy(direction(sortColumn)).limit(pageSize)
+    .offset((page - 1) * pageSize),
+  db.select({ count: sql\`count(*)::int\` }).from(purchaseOrders).where(where),
+]);`}
             />
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <BulletList
                 title="Performance choices"
                 items={[
-                  "One fetch, then client filtering — no network waterfall per keystroke.",
-                  "useDeferredValue keeps the input responsive while the 5k-row filter catches up.",
-                  "Memoised base filters run before TanStack's row model; columns are module-level.",
-                  "Sticky header, fixed row heights and skeleton states prevent layout shift.",
-                  "Density preference persists through Zustand with skipHydration.",
-                  "Filters are URL-addressable; a copied view link restores the queue.",
+                  "Paging, sorting and filtering run in Postgres, not in the browser.",
+                  "Only 50 rows are fetched per request; a GIN index backs full-text search.",
+                  "TanStack Table uses manualSorting/manualFiltering and keeps virtualized rows.",
+                  "Search input is debounced before a query is issued.",
+                  "The client-explorer case study remains available at /orders/client.",
+                  "Skeleton states prevent layout shift while a page loads.",
                 ]}
               />
               <BulletList
                 title="What this would need next"
                 items={[
                   "Move CSV export off the request path and load-test beyond 1M rows.",
-                  "Server-side sort/filter for multi-tenant data and permissions.",
+                  "Cursor pagination instead of offset for very deep pages.",
                   "Concurrency control and object-storage-backed attachments around the existing governed workflow.",
                   "Keyboard grid navigation and a proper column-resize model.",
                   "Automated performance budget checks in CI, not just one measured build.",
@@ -455,10 +450,10 @@ const virtualizer = useVirtualizer({
               />
             </div>
             <Callout tone="neutral" icon={<Gauge className="size-4" />}>
-              The 48 KB gzip delta is the measured page-specific JavaScript for{" "}
-              <Code>/orders</Code> over the shared shell. That includes TanStack Table, TanStack
-              Virtual, SWR and the explorer toolbar. The full route is 313 KB gzip; the shared
-              baseline is 266 KB.
+              The 31 KB gzip delta is the measured page-specific JavaScript for{" "}
+              <Code>/orders</Code> over the shared shell. That includes TanStack Table in manual
+              mode, TanStack Virtual and the toolbar. The full route is 297 KB gzip; the shared
+              baseline is 266 KB. The fetch-all client explorer is a separate 313 KB route.
             </Callout>
           </Section>
 
@@ -1011,6 +1006,8 @@ function Code({ children }: { children: React.ReactNode }) {
 function routeDependency(route: string) {
   switch (route) {
     case "/orders":
+      return "Server query + manual TanStack Table";
+    case "/orders/client":
       return "TanStack Table + Virtual, SWR";
     case "/orders/new":
       return "React Hook Form, Zod, Radix Select";
